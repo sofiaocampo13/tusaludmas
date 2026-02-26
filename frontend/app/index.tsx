@@ -1,70 +1,148 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  SafeAreaView, 
+  Alert, 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
+} from 'react-native';
 import { useRouter } from 'expo-router';
+// Importamos el servicio de autenticación que ya tienes definido
+import { loginProvider } from '../src/services/authService'; 
 
 export default function WelcomePage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  
+  // Estados para capturar las credenciales
+  const [identifier, setIdentifier] = useState(''); // Usuario o Email
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    // Validación básica de campos vacíos
+    if (!identifier || !password) {
+      Alert.alert("Campos requeridos", "Por favor ingresa tu usuario y contraseña.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Llamada al backend usando tu servicio
+      const data = await loginProvider(identifier, password);
+
+      if (data.success) {
+        const user = data.user;
+        
+        // Preparamos los parámetros según la estructura de tu tabla 'users'
+        const userData = {
+          fullName: `${user.first_name} ${user.last_name}`,
+          code: user.link_code,
+          roleId: user.roles_id
+        };
+
+        // Redirección lógica basada en el rol de la base de datos
+        if (user.roles_id === 2) {
+          // Si el rol es 2, es Paciente y va al Dashboard azul
+          router.push({ pathname: '/paciente', params: userData });
+        } else if (user.roles_id === 1) {
+          // Si el rol es 1, es Administrador
+          router.push({ pathname: '/admin', params: userData });
+        } else {
+          Alert.alert("Acceso Restringido", "Tu rol de usuario no tiene acceso a esta aplicación.");
+        }
+
+      } else {
+        // Mensaje si el controlador devuelve success: false
+        Alert.alert("Error de Inicio", data.message || "Credenciales incorrectas.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error de Conexión", "Asegúrate de que tu servidor esté encendido y en la misma red Wi-Fi.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        
-        {/* Título Principal */}
-        <Text style={styles.title}>TuSalud App</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
+          
+          {/* Título Principal */}
+          <Text style={styles.title}>TuSalud App</Text>
 
-        {/* Inputs de Login */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Correo electrónico / Usuario"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
+          {/* Contenedor de Formulario */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Correo electrónico / Usuario"
+              placeholderTextColor="#999"
+              value={identifier}
+              onChangeText={setIdentifier}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
 
-        {/* Botón Iniciar Sesión */}
-        <TouchableOpacity 
-          style={styles.loginButton} 
-          onPress={() => console.log('Login presionado')}
-        >
-          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-        </TouchableOpacity>
+          {/* Botón Iniciar Sesión */}
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity>
-          <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert("Ayuda", "Contacta al administrador para recuperar tu clave.")}>
+            <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
 
-        {/* Separador */}
-        <View style={styles.separatorContainer}>
-          <View style={styles.line} />
-          <Text style={styles.separatorText}>¿Todavía no tienes cuenta?</Text>
-          <View style={styles.line} />
-        </View>
+          {/* Separador Visual */}
+          <View style={styles.separatorContainer}>
+            <View style={styles.line} />
+            <Text style={styles.separatorText}>¿Todavía no tienes cuenta?</Text>
+            <View style={styles.line} />
+          </View>
 
-        {/* Botón Crear Cuenta */}
-        <TouchableOpacity style={styles.outlineButton}>
-          <Text style={styles.outlineButtonText}>Crear Cuenta</Text>
-        </TouchableOpacity>
+          {/* Botón Crear Cuenta */}
+          <TouchableOpacity 
+            style={styles.outlineButton}
+            onPress={() => Alert.alert("Registro", "Pantalla de registro próximamente.")}
+          >
+            <Text style={styles.outlineButtonText}>Crear Cuenta</Text>
+          </TouchableOpacity>
 
-        {/* Botón Soy Paciente */}
-        <TouchableOpacity 
-          style={styles.patientButton}
-          onPress={() => router.push('/login')} // Esto te llevará a tu otra lógica de login si la necesitas
-        >
-          <Text style={styles.patientButtonText}>SOY PACIENTE</Text>
-        </TouchableOpacity>
+          {/* Botón Soy Paciente (Acceso por código) */}
+          <TouchableOpacity 
+            style={styles.patientButton}
+            onPress={() => router.push('/login-code')} // Redirige a login por código
+          >
+            <Text style={styles.patientButtonText}>SOY PACIENTE</Text>
+          </TouchableOpacity>
 
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -75,10 +153,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 50,
   },
   title: {
     fontSize: 32,
@@ -99,11 +178,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
+    backgroundColor: '#FAFAFA'
   },
   loginButton: {
     width: '100%',
     height: 55,
-    backgroundColor: '#004282', // El azul oscuro de tu imagen
+    backgroundColor: '#004282', // Azul institucional
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -148,11 +228,12 @@ const styles = StyleSheet.create({
   outlineButtonText: {
     color: '#000000',
     fontSize: 16,
+    fontWeight: '500'
   },
   patientButton: {
     width: '100%',
     height: 70,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F0F0F0', // Gris claro
     borderWidth: 1,
     borderColor: '#004282',
     borderRadius: 8,

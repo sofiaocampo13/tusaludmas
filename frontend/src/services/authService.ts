@@ -1,13 +1,20 @@
-const API_URL = 'http://192.168.1.28:3000/api'; // Reemplaza con tu IP actual
+// frontend/src/services/authService.ts
 
-// 1. Definimos qué esperamos recibir del servidor para que TS no sufra
-interface AuthResponse {
+const API_URL = 'http://10.212.34.155:3000/api';
+
+export interface AuthResponse {
     success: boolean;
     message?: string;
-    user?: any;
+    user?: {
+        id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        roles_id: number; // Clave para la redirección
+        link_code: string;
+    };
 }
 
-// 2. Agregamos tipos (string) a los parámetros
 export const loginProvider = async (username: string, password: string): Promise<AuthResponse> => {
     try {
         const response = await fetch(`${API_URL}/login`, {
@@ -16,15 +23,19 @@ export const loginProvider = async (username: string, password: string): Promise
             body: JSON.stringify({ username, password }),
         });
         
-        // Retornamos la respuesta convertida a JSON
+        // Verificamos si la respuesta es 200 OK antes de convertir a JSON
+        if (!response.ok) {
+            const errorData = await response.json();
+            return { success: false, message: errorData.message || "Credenciales incorrectas" };
+        }
+
         return await response.json();
     } catch (error) {
         console.error("Error en loginProvider:", error);
-        return { success: false, message: "Error de conexión con el servidor" };
+        return { success: false, message: "No se pudo conectar con el servidor. Revisa tu red." };
     }
 };
 
-// 3. Lo mismo para el login por código
 export const loginByCodeProvider = async (code: string): Promise<AuthResponse> => {
     try {
         const response = await fetch(`${API_URL}/login-code`, {
