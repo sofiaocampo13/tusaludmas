@@ -1,250 +1,120 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  SafeAreaView, 
-  Alert, 
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView
-} from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-// Importamos el servicio de autenticación que ya tienes definido
-import { loginProvider } from '../src/services/authService'; 
+import { loginProvider, loginByCodeProvider} from '../src/services/authService'; // Tu servicio ya creado
 
-export default function WelcomePage() {
+export default function LoginScreen() {
   const router = useRouter();
-  
-  // Estados para capturar las credenciales
-  const [identifier, setIdentifier] = useState(''); // Usuario o Email
+  const [view, setView] = useState<'login' | 'patient'>('login');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [linkCode, setLinkCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    // Validación básica de campos vacíos
-    if (!identifier || !password) {
-      Alert.alert("Campos requeridos", "Por favor ingresa tu usuario y contraseña.");
-      return;
-    }
-
+  const handleLogin = async (type: 'standard' | 'code') => {
     setLoading(true);
-
     try {
-      // Llamada al backend usando tu servicio
-      const data = await loginProvider(identifier, password);
+      // CAMBIO AQUÍ: Elegir el servicio correcto según el tipo de login
+      const data = type === 'standard'
+        ? await loginProvider(identifier, password)
+        : await loginByCodeProvider(linkCode); // Usamos el servicio de código
 
-      if (data.success) {
+      if (data.success && data.user) {
         const user = data.user;
-        
-        // Preparamos los parámetros según la estructura de tu tabla 'users'
         const userData = {
-          fullName: `${user.first_name} ${user.last_name}`,
-          code: user.link_code,
-          roleId: user.roles_id
+          fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+          roleId: user.roles_id.toString(),
+          code: user.link_code || linkCode
         };
 
-        // Redirección lógica basada en el rol de la base de datos
-        if (user.roles_id === 2) {
-          // Si el rol es 2, es Paciente y va al Dashboard azul
-          router.push({ pathname: '/paciente', params: userData });
-        } else if (user.roles_id === 1) {
-          // Si el rol es 1, es Administrador
-          router.push({ pathname: '/admin', params: userData });
-        } else {
-          Alert.alert("Acceso Restringido", "Tu rol de usuario no tiene acceso a esta aplicación.");
+        // Redirección
+        if (user.roles_id === 1) {
+          router.push({ pathname: '/admin' as any, params: userData as any });
+        } else if (user.roles_id === 2 || type === 'code') {
+          router.push({ pathname: '/paciente' as any, params: userData as any });
+        } else if (user.roles_id === 3) {
+          router.push({ pathname: '/cuidador' as any, params: userData as any });
         }
-
       } else {
-        // Mensaje si el controlador devuelve success: false
-        Alert.alert("Error de Inicio", data.message || "Credenciales incorrectas.");
+        Alert.alert("Error", data.message || "Credenciales incorrectas");
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error de Conexión", "Asegúrate de que tu servidor esté encendido y en la misma red Wi-Fi.");
+      Alert.alert("Error", "No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- VISTA DE VINCULACIÓN (PACIENTE) ---
+  if (view === 'patient') {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.backButton} onPress={() => setView('login')}>
+          <Text style={{ fontSize: 24, color: '#004080' }}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Vinculación entre cuentas</Text>
+        <Text style={styles.subtitle}>Inserte el código de vinculación con el cuidador.</Text>
+        <TextInput
+          style={styles.codeInput}
+          placeholder="A B C 6"
+          maxLength={6}
+          autoCapitalize="characters"
+          onChangeText={setLinkCode}
+        />
+        <TouchableOpacity style={styles.buttonMain} onPress={() => handleLogin('code')}>
+          <Text style={styles.buttonText}>{loading ? "CARGANDO..." : "ACCEDER"}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // --- VISTA LOGIN ESTÁNDAR ---
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          
-          {/* Título Principal */}
-          <Text style={styles.title}>TuSalud App</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>TuSalud App</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Correo electrónico / Usuario"
+          value={identifier}
+          onChangeText={setIdentifier}
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Contraseña"
+          value={password}
+          secureTextEntry
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.buttonMain} onPress={() => handleLogin('standard')}>
+          <Text style={styles.buttonText}>{loading ? "ENTRANDO..." : "Iniciar Sesión"}</Text>
+        </TouchableOpacity>
 
-          {/* Contenedor de Formulario */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Correo electrónico / Usuario"
-              placeholderTextColor="#999"
-              value={identifier}
-              onChangeText={setIdentifier}
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
+        <View style={styles.divider} />
+        <Text style={styles.smallText}>¿Todavía no tienes cuenta?</Text>
+        <TouchableOpacity style={styles.buttonSecondary}><Text>Crear Cuenta</Text></TouchableOpacity>
 
-          {/* Botón Iniciar Sesión */}
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => Alert.alert("Ayuda", "Contacta al administrador para recuperar tu clave.")}>
-            <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-          </TouchableOpacity>
-
-          {/* Separador Visual */}
-          <View style={styles.separatorContainer}>
-            <View style={styles.line} />
-            <Text style={styles.separatorText}>¿Todavía no tienes cuenta?</Text>
-            <View style={styles.line} />
-          </View>
-
-          {/* Botón Crear Cuenta */}
-          <TouchableOpacity 
-            style={styles.outlineButton}
-            onPress={() => Alert.alert("Registro", "Pantalla de registro próximamente.")}
-          >
-            <Text style={styles.outlineButtonText}>Crear Cuenta</Text>
-          </TouchableOpacity>
-
-          {/* Botón Soy Paciente (Acceso por código) */}
-          <TouchableOpacity 
-            style={styles.patientButton}
-            onPress={() => router.push('/login-code')} // Redirige a login por código
-          >
-            <Text style={styles.patientButtonText}>SOY PACIENTE</Text>
-          </TouchableOpacity>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <TouchableOpacity style={styles.patientButton} onPress={() => setView('patient')}>
+          <Text style={styles.patientButtonText}>SOY PACIENTE</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    color: '#000',
-  },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  input: {
-    width: '100%',
-    height: 55,
-    borderWidth: 1,
-    borderColor: '#CCCCCC',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA'
-  },
-  loginButton: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#004282', // Azul institucional
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  forgotText: {
-    color: '#004282',
-    fontSize: 16,
-    marginBottom: 30,
-  },
-  separatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#EEEEEE',
-  },
-  separatorText: {
-    marginHorizontal: 10,
-    color: '#999999',
-    fontSize: 14,
-  },
-  outlineButton: {
-    width: '100%',
-    height: 55,
-    borderWidth: 1,
-    borderColor: '#000000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  outlineButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '500'
-  },
-  patientButton: {
-    width: '100%',
-    height: 70,
-    backgroundColor: '#F0F0F0', // Gris claro
-    borderWidth: 1,
-    borderColor: '#004282',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  patientButtonText: {
-    color: '#004282',
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
+  container: { flex: 1, padding: 30, justifyContent: 'center', backgroundColor: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
+  subtitle: { textAlign: 'center', color: '#666', marginBottom: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, marginBottom: 10 },
+  codeInput: { borderBottomWidth: 2, fontSize: 30, textAlign: 'center', letterSpacing: 10, marginVertical: 30 },
+  buttonMain: { backgroundColor: '#004080', padding: 15, borderRadius: 5, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+  buttonSecondary: { borderWidth: 1, padding: 10, borderRadius: 5, alignItems: 'center', marginTop: 10 },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
+  smallText: { textAlign: 'center', color: '#888' },
+  backButton: { position: 'absolute', top: 50, left: 20 },
+  patientButton: { backgroundColor: '#f0f0f0', padding: 20, marginTop: 30, borderWidth: 2, borderColor: '#004080' },
+  patientButtonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#004080' }
 });

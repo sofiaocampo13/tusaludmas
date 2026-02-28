@@ -6,4 +6,4 @@ import { login, loginByCode } from '../controllers/authController.js';
 router.post('/login', login);
 router.post('/login-code', loginByCode);
 
-export default router; // <--- Esto es lo que soluciona tu error actual
+export default router;

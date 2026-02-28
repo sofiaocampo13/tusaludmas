@@ -1,6 +1,6 @@
 // frontend/src/services/authService.ts
 
-const API_URL = 'http://10.212.34.155:3000/api';
+const API_URL = 'http://192.168.1.5:3000/api'; //SIEMPRE CORREGIR SEGÚN IP
 
 export interface AuthResponse {
     success: boolean;

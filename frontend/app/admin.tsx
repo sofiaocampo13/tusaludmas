@@ -1,5 +1,5 @@
 import React from 'react';
-import AdminScreen from '../src/screens/AdminScreen';
+import AdminScreen from '../src/screens/admin/AdminScreen';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function Page() {

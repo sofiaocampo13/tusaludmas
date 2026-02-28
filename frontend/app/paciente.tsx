@@ -1,5 +1,5 @@
 import React from 'react';
-import PacienteScreen from '../src/screens/PacienteScreen';
+import PacienteScreen from '../src/screens/paciente/PacienteScreen';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function Page() {
