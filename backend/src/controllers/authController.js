@@ -44,3 +44,24 @@ export const loginByCode = (req, res) => {
         }
     });
 };
+
+// LISTAR TODOS LOS USUARIOS
+export const getAllUsers = (req, res) => {
+    User.findAll((err, results) => {
+        if (err) {
+            console.error('Error al obtener usuarios:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error al obtener la lista de usuarios' 
+            });
+        }
+
+        // Retornamos la lista para encriotar las contraseñas
+        const safeUsers = results.map(({ password, ...user }) => user);
+        
+        res.json({ 
+            success: true, 
+            users: safeUsers 
+        });
+    });
+};
