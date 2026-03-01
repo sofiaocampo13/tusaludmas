@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors"; 
 import authRoutes from './routes/authRoutes.js'; // CAMBIO: Usamos import y añadimos .js
 import patientRoutes from './routes/patientRoutes.js';
+import appointmentRoutes from './routes/appointmentRoutes.js';
+import alarmRoutes from './routes/alarmRoutes.js';
+
 
 const app = express();
 
@@ -13,6 +16,9 @@ app.use(express.json());
 app.use('/api', authRoutes); // Conectamos tus rutas de login
 
 app.use('/api', patientRoutes); 
+
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/alarms', alarmRoutes);
 
 // Ruta de prueba
 app.get('/api/saludo', (req, res) => {
