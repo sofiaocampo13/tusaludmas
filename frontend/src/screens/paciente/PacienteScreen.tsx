@@ -4,12 +4,43 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Definimos que el componente recibe 'user' como prop directamente
 export default function PacienteScreen({ user }: any) {
+  // --- NUEVO: Lógica para conectar con la DB ---
+  const [alarmasDB, setAlarmasDB] = React.useState<any[]>([]);
+  const [alarmaFlash, setAlarmaFlash] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const cargarAlarmas = async () => {
+      try {
+        // REEMPLAZA '192.168.1.XX' por la IP de tu computadora
+        const response = await fetch(`http://192.168.1.XX:3000/api/paciente/alarmas/${user.id}`);
+        const data = await response.json();
+        setAlarmasDB(data);
+
+        // Si hay una alarma cuya hora ya pasó o es ahora, activamos el "Flash"
+        const ahora = new Date();
+        const alarmaProxima = data.find((a: any) => new Date(a.alarm_datetime) <= ahora);
+        if (alarmaProxima) setAlarmaFlash(alarmaProxima);
+        
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+      }
+    };
+
+    cargarAlarmas();
+    const interval = setInterval(cargarAlarmas, 30000); // Revisa cada 30 segundos
+    return () => clearInterval(interval);
+  }, []);
+
+  // Estado para saber qué pantalla mostrar: 'inicio' o 'citas'
+  const [vistaActual, setVistaActual] = React.useState('inicio');
   
   // Si por alguna razón 'user' no llega, usamos valores por defecto para evitar errores
   const displayUser = {
     fullName: user?.fullName || 'Paciente Invitado',
     link_code: user?.link_code || '----'
   };
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -35,78 +66,110 @@ export default function PacienteScreen({ user }: any) {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>IMPORTANTES</Text>
-        
-        {/* 2. Filtros de Categoría */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
-          <TouchableOpacity style={[styles.chip, styles.activeChip]}>
-            <Text style={styles.activeChipText}>TODO</Text>
-          </TouchableOpacity>
-          {['CARDIOLOGÍA', 'ORTOPEDIA', 'NEURO'].map((item) => (
-            <TouchableOpacity key={item} style={styles.chip}>
-              <Text style={styles.chipText}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
 
-        {/* 3. Tarjetas de Citas y Medicamentos */}
-        {/* Tarjeta Azul */}
-        <View style={[styles.card, { backgroundColor: '#3498DB' }]}>
-          <Text style={styles.cardDoctor}>Dr. Sarah Johnson</Text>
-          <Text style={styles.cardSub}>Cardiología - Consulta</Text>
-          <View style={styles.badgeContainer}>
-            <View style={styles.badge}>
-              <Ionicons name="calendar" size={14} color="#FFF" />
-              <Text style={styles.badgeText}>Jue, 13 Mar 2025</Text>
+      {/* --- BLOQUE CENTRAL ÚNICO --- */}
+      {vistaActual === 'inicio' ? (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>IMPORTANTES</Text>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+            <TouchableOpacity style={[styles.chip, styles.activeChip]}>
+              <Text style={styles.activeChipText}>TODO</Text>
+            </TouchableOpacity>
+            {['CARDIOLOGÍA', 'ORTOPEDIA', 'NEURO'].map((item) => (
+              <TouchableOpacity key={item} style={styles.chip}>
+                <Text style={styles.chipText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Tarjeta Azul */}
+          <View style={[styles.card, { backgroundColor: '#3498DB' }]}>
+            <Text style={styles.cardDoctor}>Dr. Sarah Johnson</Text>
+            <Text style={styles.cardSub}>Cardiología - Consulta</Text>
+            <View style={styles.badgeContainer}>
+              <View style={styles.badge}>
+                <Ionicons name="calendar" size={14} color="#FFF" />
+                <Text style={styles.badgeText}>Jue, 13 Mar 2025</Text>
+              </View>
             </View>
+          </View>
+
+          {/* Tarjeta Morada */}
+          <View style={[styles.card, { backgroundColor: '#9B51E0' }]}>
+            <Text style={styles.cardDoctor}>Atorvastatina</Text>
+            <Text style={styles.cardSub}>Dosis: 10-40 mg/día</Text>
             <View style={styles.badge}>
               <Ionicons name="time" size={14} color="#FFF" />
-              <Text style={styles.badgeText}>10:30-11:30</Text>
+              <Text style={styles.badgeText}>1:00 PM</Text>
             </View>
           </View>
-        </View>
-
-        {/* Tarjeta Morada */}
-        <View style={[styles.card, { backgroundColor: '#9B51E0' }]}>
-          <Text style={styles.cardDoctor}>Atorvastatina</Text>
-          <Text style={styles.cardSub}>Dosis: 10-40 mg/día - Colesterol</Text>
-          <View style={styles.badge}>
-            <Ionicons name="time" size={14} color="#FFF" />
-            <Text style={styles.badgeText}>1:00 PM</Text>
+        </ScrollView>
+      ) : (
+        /* --- ESTA ES LA PANTALLA DE CITAS --- */
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>MIS CITAS ASIGNADAS</Text>
+          <View style={[styles.card, { backgroundColor: '#3498DB' }]}>
+            <Text style={styles.cardDoctor}>Cita Médica en Agenda</Text>
+            <Text style={styles.cardSub}>Consulta de seguimiento - General</Text>
+            <View style={styles.badge}>
+              <Ionicons name="calendar" size={14} color="#FFF" />
+              <Text style={styles.badgeText}>Próximamente datos de DB</Text>
+            </View>
           </View>
-        </View>
+          <Text style={{ textAlign: 'center', color: '#999', marginTop: 20 }}>
+            No hay más citas programadas por el momento.
+          </Text>
+        </ScrollView>
+      )}
+      {/* --- FIN LÓGICA --- */}
+      
 
-        {/* Tarjeta Naranja */}
-        <View style={[styles.card, { backgroundColor: '#F2994A' }]}>
-          <Text style={styles.cardDoctor}>Dr. Angie Lobos</Text>
-          <Text style={styles.cardSub}>Ortopedia - Consulta</Text>
-          <View style={styles.badge}>
-            <Ionicons name="calendar" size={14} color="#FFF" />
-            <Text style={styles.badgeText}>Lun, 17 Mar 2025  09:00 AM</Text>
-          </View>
-        </View>
-      </ScrollView>
 
-      {/* 4. Barra de Navegación Inferior */}
+
+ {/* 4. Barra de Navegación Inferior (ESTE ES EL NUEVO BLOQUE) */}
       <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="home" size={24} color="#3498DB" />
-          <Text style={[styles.tabText, { color: '#3498DB' }]}>Inicio</Text>
+        
+        {/* BOTÓN INICIO */}
+        <TouchableOpacity 
+          style={styles.tabItem} 
+          onPress={() => setVistaActual('inicio')}
+        >
+          <Ionicons 
+            name="home" 
+            size={24} 
+            color={vistaActual === 'inicio' ? "#3498DB" : "#999"} 
+          />
+          <Text style={[styles.tabText, vistaActual === 'inicio' && { color: '#3498DB' }]}>
+            Inicio
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="calendar-outline" size={24} color="#999" />
-          <Text style={styles.tabText}>Citas</Text>
+
+        {/* BOTÓN CITAS */}
+        <TouchableOpacity 
+          style={styles.tabItem} 
+          onPress={() => setVistaActual('citas')}
+        >
+          <Ionicons 
+            name={vistaActual === 'citas' ? "calendar" : "calendar-outline"} 
+            size={24} 
+            color={vistaActual === 'citas' ? "#3498DB" : "#999"} 
+          />
+          <Text style={[styles.tabText, vistaActual === 'citas' && { color: '#3498DB' }]}>
+            Citas
+          </Text>
         </TouchableOpacity>
+
+        {/* BOTÓN AJUSTES */}
         <TouchableOpacity style={styles.tabItem}>
           <Ionicons name="settings-outline" size={24} color="#999" />
           <Text style={styles.tabText}>Ajustes</Text>
         </TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   blueHeader: {
