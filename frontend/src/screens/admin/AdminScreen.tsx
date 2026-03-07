@@ -108,15 +108,11 @@ export default function AdminScreen({ user }: any) {
             <Text style={styles.actionBtnText}>Gestionar Usuarios</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtn}>
-            <Text style={styles.actionBtnText}>Clínicas / Médicos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/admin/medicines')}>
             <Text style={styles.actionBtnText}>Medicamentos</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtn}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/admin/reports')}>
             <Text style={styles.actionBtnText}>Reportes</Text>
           </TouchableOpacity>
         </View>

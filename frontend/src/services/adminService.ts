@@ -13,6 +13,17 @@ export interface UserData {
     roles_id: number;
     state: number; // 1 = Activo, 0 = Suspendido
 }
+export interface MedicineData {
+    id: number;
+    name: string;
+    description: string;
+}
+export interface ReportsData {
+    id: number;
+    userName: string;
+    reason: string;
+    date: string;
+}
 
 export interface AdminResponse {
     success: boolean;
@@ -54,4 +65,18 @@ export const toggleUserStatusProvider = async (userId: number, newState: number)
         console.error("Error en toggleUserStatusProvider:", error);
         return { success: false };
     }
+};
+export const getAllMedicinesProvider = async (): Promise<{success: boolean, medicines?: MedicineData[], message?: string}> => {
+    try {
+        const response = await fetch(`${API_URL}/medicines`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return await response.json();
+    } catch (error) {
+        return { success: false, message: "Error de conexión con el inventario." };
+    }
+};
+export const getAllReportsProvider = async (): Promise<{success: boolean, reports?: ReportsData[], message?: string}> => {
+    return { success: true, reports: []};
 };
