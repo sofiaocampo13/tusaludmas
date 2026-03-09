@@ -1,4 +1,9 @@
-import { View, Text } from 'react-native';
+import React from 'react';
+import AgendarScreen from '../../src/screens/cuidador/AgendarScreen';
+import { useGlobalSearchParams } from 'expo-router';
+
 export default function Page() {
-  return <View><Text>Pantalla Agendar</Text></View>;
+  const params = useGlobalSearchParams();
+  const caregiverId = Number((params as any)?.id) || undefined;
+  return <AgendarScreen caregiverId={caregiverId} />;
 }
