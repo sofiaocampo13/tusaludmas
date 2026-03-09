@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './api';
+import { apiGet, apiPost } from './cuidadorService';
 import type { User, Medicine, PatientLinked } from '../types/database';
 
 export async function getUserById(id: number) {
