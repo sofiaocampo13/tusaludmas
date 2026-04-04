@@ -11,6 +11,8 @@ app.use(express.json());
 // Rutas
 app.use('/api', authRoutes); // Conectamos tus rutas de login
 
+app.use('/api/auth', authRoutes);
+
 // Ruta de prueba
 app.get('/api/saludo', (req, res) => {
   res.json({ mensaje: "Conexión exitosa desde el Backend de Node.js" });
