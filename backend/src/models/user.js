@@ -1,14 +1,11 @@
 import db from '../config/db.js';
 
 const User = {
-    // Método para registrar cualquier tipo de usuario (Paciente o Cuidador)
+    // Método para registrar cualquier tipo de usuario
     create: (userData, callback) => {
         const { first_name, last_name, email, password, roles_id } = userData;
-        
-        // Generación automática del username para cumplir con la restricción UNI y NOT NULL
         const username = email.split('@')[0];
 
-        // Usamos el roles_id enviado (2 para Paciente, 3 para Cuidador) y state=1 por defecto
         const sql = `
             INSERT INTO users 
             (username, first_name, last_name, password, email, state, roles_id) 
@@ -25,6 +22,45 @@ const User = {
             WHERE (u.username = ? OR u.email = ?) AND u.password = ? AND u.state = 1`;
         db.query(sql, [username, username, password], callback);
     },
+
+    // --- FUNCIONES DE RECUPERACIÓN DE CONTRASEÑA ---
+    findByEmail: (email, callback) => {
+        const sql = 'SELECT * FROM users WHERE email = ? AND state = 1';
+        db.query(sql, [email], (err, results) => {
+            if (err) return callback(err, null);
+            callback(null, results[0]);
+        });
+    },
+
+    saveResetToken: (userId, token, expires, callback) => {
+        const sql = `
+            UPDATE users 
+            SET resetPasswordToken = ?, resetPasswordExpires = ? 
+            WHERE id = ?`;
+        db.query(sql, [token, expires, userId], callback);
+    },
+
+    // ESTA ES LA QUE TE FALTABA:
+    findByResetToken: (token, callback) => {
+        const sql = `
+            SELECT * FROM users 
+            WHERE resetPasswordToken = ? 
+            AND resetPasswordExpires > NOW() 
+            AND state = 1`;
+        db.query(sql, [token], (err, results) => {
+            if (err) return callback(err, null);
+            callback(null, results[0]);
+        });
+    },
+
+    updatePassword: (userId, newPassword, callback) => {
+        const sql = `
+            UPDATE users 
+            SET password = ?, resetPasswordToken = NULL, resetPasswordExpires = NULL 
+            WHERE id = ?`;
+        db.query(sql, [newPassword, userId], callback);
+    },
+    // ----------------------------------------------
 
     findByCode: (code, callback) => {
         const sql = `
@@ -44,7 +80,6 @@ const User = {
         db.query(sql, [id], callback);
     },
 
-    // LISTA TODOS LOS USUARIOS CON SU ROL
     findAll: (callback) => {
         const sql = `
             SELECT u.id, u.username, u.email, u.state, r.name as role_name 
@@ -53,7 +88,6 @@ const User = {
         db.query(sql, callback);
     },
 
-    // ACTUALIZA LA UBICACIÓN DEL USUARIO
     updateLocation: (userId, lat, lng, callback) => {
         const sql = 'UPDATE users SET latitude = ?, longitude = ? WHERE id = ?';
         db.query(sql, [lat, lng, userId], callback);
@@ -68,10 +102,8 @@ const User = {
         db.query(sql, [caregiverId], callback);
     },
 
-    // ACTUALIZAR DATOS DEL USUARIO
     update: (userId, userData, callback) => {
         const { first_name, last_name, email, phone } = userData;
-        
         const username = email ? email.split('@')[0] : null;
 
         const sql = `
