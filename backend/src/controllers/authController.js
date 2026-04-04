@@ -1,5 +1,7 @@
 import User from '../models/user.js';
 import bcrypt from 'bcrypt'; 
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 // LOGIN ESTÁNDAR
 export const login = (req, res) => {
@@ -70,16 +72,12 @@ export const getAllUsers = (req, res) => {
 export const register = async (req, res) => {
     const { first_name, last_name, email, password, roleType } = req.body;
 
-    // Validación básica de campos requeridos
     if (!first_name || !email || !password) {
         return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
 
     try {
-        // Encriptamos la contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
-        
-        // Asignamos el ID según lo definido: Paciente (2) o Cuidador (3)
         const roles_id = (roleType === 'cuidador') ? 3 : 2;
 
         User.create({ 
@@ -110,7 +108,7 @@ export const register = async (req, res) => {
 };
 
 export const updateUser = (req, res) => {
-    const { id } = req.params; // Obtenemos el ID de la URL
+    const { id } = req.params; 
     const userData = req.body;
 
     User.update(id, userData, (err, result) => {
@@ -124,5 +122,77 @@ export const updateUser = (req, res) => {
         }
 
         res.json({ success: true, message: 'Datos actualizados correctamente' });
+    });
+};
+
+// --- RECUPERACIÓN: PASO 1 (Enviar Email) ---
+export const forgotPassword = (req, res) => {
+    const { email } = req.body;
+
+    User.findByEmail(email, async (err, user) => {
+        if (err) return res.status(500).json({ msg: 'Error en la base de datos' });
+        if (!user) return res.status(404).json({ msg: 'El correo no está registrado' });
+
+        const token = crypto.randomBytes(20).toString('hex');
+        const expires = new Date(Date.now() + 3600000); // 1 hora
+
+        User.saveResetToken(user.id, token, expires, async (err) => {
+            if (err) return res.status(500).json({ msg: 'Error al guardar el token' });
+
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            const mailOptions = {
+                from: '"Tu Salud +" <tusaludmas.app@gmail.com>',
+                to: user.email,
+                subject: 'Recuperación de Contraseña',
+                html: `<h1>Hola ${user.first_name}</h1>
+                       <p>Has solicitado restablecer tu contraseña en Tu Salud +.</p>
+                       <p>Tu código de recuperación es: <b>${token}</b></p>
+                       <p>Si no fuiste tú, ignora este mensaje.</p>`
+            };
+
+            try {
+                await transporter.sendMail(mailOptions);
+                res.json({ success: true, message: 'Correo enviado con éxito' });
+            } catch (error) {
+                console.error("Error enviando email:", error);
+                res.status(500).json({ msg: 'Error al enviar el email' });
+            }
+        });
+    });
+};
+
+// --- RECUPERACIÓN: PASO 2 (Restablecer Contraseña) ---
+// ESTA ES LA FUNCIÓN QUE TE FALTABA PARA QUE LAS RUTAS NO DEN ERROR
+export const resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Faltan datos (token o contraseña)' });
+    }
+
+    // 1. Validamos el token
+    User.findByResetToken(token, async (err, user) => {
+        if (err) return res.status(500).json({ success: false, message: 'Error de base de datos' });
+        if (!user) return res.status(400).json({ success: false, message: 'El código es inválido o ha expirado' });
+
+        try {
+            // 2. Encriptamos la nueva clave
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // 3. Actualizamos en la DB
+            User.updatePassword(user.id, hashedPassword, (err) => {
+                if (err) return res.status(500).json({ success: false, message: 'Error al actualizar contraseña' });
+                res.json({ success: true, message: 'Contraseña actualizada con éxito' });
+            });
+        } catch (error) {
+            res.status(500).json({ success: false, message: 'Error interno del servidor' });
+        }
     });
 };
