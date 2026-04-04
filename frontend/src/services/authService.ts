@@ -1,7 +1,11 @@
 // frontend/src/services/authService.ts
 import { API_BASE_URL } from '../config/api';
 
+<<<<<<< HEAD
 const API_URL = API_BASE_URL;
+=======
+const API_URL = 'http://192.168.1.18:3000/api'; //SIEMPRE CORREGIR SEGÚN IP
+>>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
 
 export interface AuthResponse {
     success: boolean;
