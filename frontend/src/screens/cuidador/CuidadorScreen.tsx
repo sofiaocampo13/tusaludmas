@@ -1,20 +1,12 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Linking } from 'react-native';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { API_BASE_URL } from '../../config/api';
-=======
-import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { API_BASE_URL } from '../../config/api';
 import type { CuidadorUser, PatientLinked, NotificacionEmergente } from '../../types/database';
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
 
-// Funciones de ayuda existentes
+// --- FUNCIONES DE AYUDA ---
 function formatAlarmTime(alarm_datetime: string): string {
   try {
     const d = new Date(alarm_datetime);
@@ -24,15 +16,15 @@ function formatAlarmTime(alarm_datetime: string): string {
   }
 }
 
-function getDisplayName(user: { first_name?: string | null; last_name?: string | null; fullName?: string; username?: string }): string {
+function getDisplayName(user: any): string {
   if (user.fullName) return user.fullName;
   const first = user.first_name ?? '';
   const last = user.last_name ?? '';
   const name = `${first} ${last}`.trim();
-  return name || user.username || '';
+  return name || user.username || 'Usuario';
 }
 
-function generateCalendarDays(): { num: string; label: string; isToday: boolean }[] {
+function generateCalendarDays() {
   const today = new Date();
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());
@@ -52,7 +44,7 @@ function generateCalendarDays(): { num: string; label: string; isToday: boolean 
 
 const DIAS_CALENDARIO = generateCalendarDays();
 const NOTIFICACIONES_EJEMPLO: NotificacionEmergente[] = [
-  { id: 1, type: 'toma', title: 'Toma', detail: 'Medicamento', alarm_datetime: new Date().toISOString(), patient_medicine_id: 1 },
+  { id: 1, type: 'toma', title: 'Toma', detail: 'Medicamento pendiente', alarm_datetime: new Date().toISOString(), patient_medicine_id: 1 },
 ];
 
 export interface CuidadorScreenProps {
@@ -61,20 +53,22 @@ export interface CuidadorScreenProps {
   notificaciones?: NotificacionEmergente[];
 }
 
-export default function CuidadorScreen({ user, patient = null, notificaciones = NOTIFICACIONES_EJEMPLO }: CuidadorScreenProps) {
-  const userName = getDisplayName(user);
+export default function CuidadorScreen({ 
+  user, 
+  patient = null, 
+  notificaciones = NOTIFICACIONES_EJEMPLO 
+}: CuidadorScreenProps) {
   
-  // --- LÓGICA DE MAPAS ADICIONADA ---
+  const userName = getDisplayName(user);
   const [pacienteInfo, setPacienteInfo] = useState<any>(null);
   const [loadingMap, setLoadingMap] = useState(true);
 
+  // --- LÓGICA DE UBICACIÓN (Daniel) ---
   const fetchLocation = async () => {
     try {
-      // Usamos el roleId del usuario para buscar la ubicación del paciente vinculado
       const url = `${API_BASE_URL}/patients/location/${user.roles_id}`;
       const response = await fetch(url);
       const result = await response.json();
-
       if (result.success && result.data) {
         setPacienteInfo(result.data);
       }
@@ -87,7 +81,7 @@ export default function CuidadorScreen({ user, patient = null, notificaciones = 
 
   useEffect(() => {
     fetchLocation();
-    const interval = setInterval(fetchLocation, 15000); // Actualización cada 15 segundos
+    const interval = setInterval(fetchLocation, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,61 +94,15 @@ export default function CuidadorScreen({ user, patient = null, notificaciones = 
 
   const currentPatientName = pacienteInfo?.first_name || (patient ? getDisplayName(patient) : 'Paciente');
 
-<<<<<<< HEAD
-export default function CuidadorScreen({ user }: any) {
-  // Daniel: Estados para la ubicación y datos del paciente
-  const [pacienteInfo, setPacienteInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchLocation = async () => {
-    try {
-      // Daniel: Volvemos a la forma dinámica para que reconozca a cualquier cuidador
-      const url = `${API_BASE_URL}/patients/location/${user.roleId}`;
-      console.log("Daniel - Consultando URL:", url); // Verifica que el ID sea 3
-
-      const response = await fetch(url);
-      const result = await response.json();
-      
-      console.log("Daniel - Respuesta completa del servidor:", JSON.stringify(result, null, 2));
-
-      if (result.success && result.data) {
-        console.log("Daniel - Coordenadas encontradas:", result.data.latitude, result.data.longitude);
-        setPacienteInfo(result.data);
-      } else {
-        console.warn("Daniel - El servidor no encontró datos para este ID");
-      }
-    } catch (error) {
-      console.error("Daniel - Error en el fetch:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLocation();
-    // Daniel: Actualización automática cada 15 segundos para tiempo real
-    const interval = setInterval(fetchLocation, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleCall = () => {
-    if (pacienteInfo?.phone) {
-      Linking.openURL(`tel:${pacienteInfo.phone}`);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-=======
-  return (
-    <SafeAreaView style={styles.container}>
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
       <View style={styles.header}>
         <Text style={styles.headerTitle}>TUSALUD+</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Bienvenida */}
         <View style={styles.welcomeSection}>
           {user.profile_picture ? (
             <Image source={{ uri: user.profile_picture }} style={styles.avatar} />
@@ -169,32 +117,9 @@ export default function CuidadorScreen({ user }: any) {
           </View>
         </View>
 
-<<<<<<< HEAD
         {/* Resumen Diario */}
         <View style={styles.summaryCard}>
-          <Text style={styles.monthTitle}>Marzo</Text>
-          <Text style={styles.subSubtitle}>Actividades de hoy</Text>
-          
-          <View style={styles.timelineItem}>
-            <View style={[styles.dot, { backgroundColor: '#4CAF50' }]} />
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityTitle}>Toma Confirmada</Text>
-              <Text style={styles.activityDetail}>Medicamento: Atorvastatina</Text>
-              <Text style={styles.activityTime}><Ionicons name="time-outline" /> 1:00 PM</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Daniel: Mapa Real del Paciente */}
-        <Text style={styles.sectionLabel}>
-          Ubicación de {pacienteInfo ? pacienteInfo.first_name : 'Paciente'}
-        </Text>
-        
-        <View style={styles.mapContainer}>
-          {loading ? (
-=======
-        <View style={styles.summaryCard}>
-          <Text style={styles.monthTitle}>Marzo</Text>
+          <Text style={styles.monthTitle}>Abril</Text>
           <View style={styles.calendarStrip}>
             {DIAS_CALENDARIO.map((d) => (
               <View key={d.num} style={[styles.calendarDay, d.isToday && styles.calendarDayActive]}>
@@ -203,16 +128,16 @@ export default function CuidadorScreen({ user }: any) {
               </View>
             ))}
           </View>
-          <Text style={styles.subSubtitle}>{notificaciones.filter((n) => n.type === 'toma').length} toma(s) hoy</Text>
+          <Text style={styles.subSubtitle}>
+            {notificaciones.filter((n) => n.type === 'toma').length} toma(s) hoy
+          </Text>
 
           {notificaciones.map((notif) => (
             <View key={notif.id} style={styles.timelineItem}>
               <View style={[styles.pillIcon, { backgroundColor: '#2196F3' }]}>
-                {notif.type === 'toma' ? (
-                  <FontAwesome5 name="pills" size={14} color="#FFF" />
-                ) : (
-                  <Ionicons name="calendar" size={14} color="#FFF" />
-                )}
+                {notif.type === 'toma' 
+                  ? <FontAwesome5 name="pills" size={14} color="#FFF" />
+                  : <Ionicons name="calendar" size={14} color="#FFF" />}
               </View>
               <View style={styles.activityInfo}>
                 <View style={styles.activityRow}>
@@ -221,7 +146,7 @@ export default function CuidadorScreen({ user }: any) {
                     <Ionicons name="ellipsis-vertical" size={18} color="#666" />
                   </TouchableOpacity>
                 </View>
-                {notif.detail ? <Text style={styles.activityDetail}>{notif.detail}</Text> : null}
+                {notif.detail && <Text style={styles.activityDetail}>{notif.detail}</Text>}
                 <Text style={styles.activityTime}>
                   <Ionicons name="time-outline" size={14} /> {formatAlarmTime(notif.alarm_datetime)}
                 </Text>
@@ -230,11 +155,10 @@ export default function CuidadorScreen({ user }: any) {
           ))}
         </View>
 
-        {/* --- SECCIÓN DE MAPA INTEGRADA --- */}
+        {/* Mapa de Ubicación */}
         <Text style={styles.sectionLabel}>Ubicación de {currentPatientName}</Text>
         <View style={styles.mapContainer}>
           {loadingMap ? (
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
             <ActivityIndicator size="large" color="#2196F3" />
           ) : pacienteInfo?.latitude ? (
             <MapView
@@ -252,56 +176,15 @@ export default function CuidadorScreen({ user }: any) {
                   latitude: parseFloat(pacienteInfo.latitude),
                   longitude: parseFloat(pacienteInfo.longitude),
                 }}
-<<<<<<< HEAD
-                title={pacienteInfo.first_name}
-                description="Ubicación actual del paciente"
-              >
-                <View style={styles.markerContainer}>
-=======
                 title={currentPatientName}
                 description="Ubicación actual"
               >
                 <View style={styles.markerWrapper}>
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
                   <Ionicons name="person-circle" size={40} color="#2196F3" />
                 </View>
               </Marker>
             </MapView>
           ) : (
-<<<<<<< HEAD
-            <Text style={styles.noDataText}>Buscando señal GPS...</Text>
-          )}
-
-          {/* Botón de Llamada Dinámico */}
-          <TouchableOpacity style={styles.locationOverlay} onPress={handleCall}>
-            <Ionicons name="call" size={20} color="#004282" />
-            <Text style={styles.locationText}>
-              Llamar a {pacienteInfo?.first_name || 'Carlos'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Barra de Navegación Inferior */}
-      <View style={styles.bottomTab}>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="home" size={24} color="#004282" />
-          <Text style={[styles.tabLabel, { color: '#004282' }]}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
-          <FontAwesome5 name="pills" size={22} color="#999" />
-          <Text style={styles.tabLabel}>Medicamento</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="calendar" size={24} color="#999" />
-          <Text style={styles.tabLabel}>Agendar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="person" size={24} color="#999" />
-          <Text style={styles.tabLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
-=======
             <Text style={{ color: '#666', fontStyle: 'italic' }}>Buscando señal GPS...</Text>
           )}
 
@@ -311,7 +194,6 @@ export default function CuidadorScreen({ user }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
     </SafeAreaView>
   );
 }
@@ -346,13 +228,5 @@ const styles = StyleSheet.create({
   mapContainer: { height: 250, borderRadius: 15, backgroundColor: '#E0E0E0', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   locationOverlay: { position: 'absolute', bottom: 10, left: 10, backgroundColor: '#FFF', padding: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', elevation: 3 },
   locationText: { marginLeft: 8, fontWeight: 'bold', color: '#004282' },
-<<<<<<< HEAD
-  bottomTab: { flexDirection: 'row', borderTopWidth: 1, borderColor: '#EEE', paddingVertical: 10, backgroundColor: '#FFF' },
-  tabItem: { flex: 1, alignItems: 'center' },
-  tabLabel: { fontSize: 10, color: '#999', marginTop: 4 },
-  markerContainer: { backgroundColor: 'white', borderRadius: 20, padding: 2, elevation: 5 },
-  noDataText: { color: '#666', fontStyle: 'italic' }
-=======
-  markerWrapper: { backgroundColor: 'white', borderRadius: 20, padding: 2, elevation: 5 },
->>>>>>> 9ffd24b (Cambios locales antes de sincronizar con main)
+  markerWrapper: { backgroundColor: 'white', borderRadius: 20, padding: 2, elevation: 5 }
 });

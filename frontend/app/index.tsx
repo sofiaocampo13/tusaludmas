@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function WelcomeScreen() {
@@ -73,7 +73,7 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Aquí va tu logo */}
+        
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
             <Text style={styles.logoText}>TUSALUD+</Text>
@@ -98,6 +98,7 @@ export default function WelcomeScreen() {
             <Text style={styles.registerBtnText}>Crear Cuenta</Text>
           </TouchableOpacity>
         </View>
+
       </View>
     </SafeAreaView>
   );
