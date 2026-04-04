@@ -88,13 +88,22 @@ export default function LoginScreen() {
           secureTextEntry
           onChangeText={setPassword}
         />
+        <TouchableOpacity 
+          onPress={() => router.push('/auth/forgot-password' as any)} 
+          style={styles.forgotPasswordContainer}
+          >
+          <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
         <TouchableOpacity style={styles.buttonMain} onPress={() => handleLogin('standard')}>
           <Text style={styles.buttonText}>{loading ? "ENTRANDO..." : "Iniciar Sesión"}</Text>
         </TouchableOpacity>
 
         <View style={styles.divider} />
         <Text style={styles.smallText}>¿Todavía no tienes cuenta?</Text>
-        <TouchableOpacity style={styles.buttonSecondary}><Text>Crear Cuenta</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.buttonSecondary} onPress={() => router.push('/auth/register')}
+        ><Text>Crear Cuenta</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.patientButton} onPress={() => setView('patient')}>
           <Text style={styles.patientButtonText}>SOY PACIENTE</Text>
@@ -117,5 +126,15 @@ const styles = StyleSheet.create({
   smallText: { textAlign: 'center', color: '#888' },
   backButton: { position: 'absolute', top: 50, left: 20 },
   patientButton: { backgroundColor: '#f0f0f0', padding: 20, marginTop: 30, borderWidth: 2, borderColor: '#004080' },
-  patientButtonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#004080' }
+  patientButtonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#004080' },forgotPasswordContainer: {
+    alignSelf: 'flex-end', // Esto lo mueve a la derecha
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  forgotPasswordText: {
+    color: '#004080', // El azul que estás usando
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline' // Para que parezca un link (opcional)
+  }
 });

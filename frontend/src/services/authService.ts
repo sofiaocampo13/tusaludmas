@@ -50,3 +50,16 @@ export const loginByCodeProvider = async (code: string): Promise<AuthResponse> =
         return { success: false, message: "Error de conexión" };
     }
 };
+export const forgotPasswordProvider = async (email: string): Promise<{success: boolean, message?: string}> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        const data = await response.json();
+        return { success: response.ok, message: data.message };
+    } catch (error) {
+        return { success: false, message: "Error de conexión con el servidor" };
+    }
+};
