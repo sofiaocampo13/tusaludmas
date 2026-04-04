@@ -19,10 +19,37 @@ export const createAlarm = (req, res) => {
 
 export const updateAlarmState = (req, res) => {
     const { id } = req.params;
-    const { state } = req.body; // 1 para activo, 0 para inactivo
+    const { state } = req.body;
     db.query(`UPDATE alarmas SET state = ? WHERE id = ?`, [state, id], (err) => {
         if (err) return res.status(500).json({ success: false });
-        res.json({ success: true, message: "Estado de la alarma actualizado" });
+        res.json({ success: true });
+    });
+};
+
+// PUT /:id — actualiza state y/o alarm_datetime según lo que se envíe
+export const updateAlarm = (req, res) => {
+    const { id } = req.params;
+    const { state, alarm_datetime } = req.body;
+
+    const fields = [];
+    const values = [];
+    if (state !== undefined) { fields.push('state = ?'); values.push(state); }
+    if (alarm_datetime !== undefined) { fields.push('alarm_datetime = ?'); values.push(alarm_datetime); }
+
+    if (fields.length === 0) return res.status(400).json({ success: false, message: 'Nada que actualizar' });
+    values.push(id);
+
+    db.query(`UPDATE alarmas SET ${fields.join(', ')} WHERE id = ?`, values, (err) => {
+        if (err) return res.status(500).json({ success: false });
+        res.json({ success: true });
+    });
+};
+
+export const deleteAlarm = (req, res) => {
+    const { id } = req.params;
+    db.query(`DELETE FROM alarmas WHERE id = ?`, [id], (err) => {
+        if (err) return res.status(500).json({ success: false });
+        res.json({ success: true });
     });
 };
 

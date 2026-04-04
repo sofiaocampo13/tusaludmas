@@ -1,11 +1,10 @@
 import express from 'express';
 const router = express.Router();
-import { createAlarm, updateAlarmState, getAlarmsByPatient } from '../controllers/alarmController.js';
+import { createAlarm, updateAlarmState, updateAlarm, deleteAlarm, getAlarmsByPatient } from '../controllers/alarmController.js';
 
 router.post('/', createAlarm);
-router.put('/:id', updateAlarmState);
+router.put('/:id', updateAlarm);
+router.delete('/:id', deleteAlarm);
+router.get('/paciente/:id', getAlarmsByPatient);
 
 export default router;
-
-// otros imports
-router.get('/paciente/:id', getAlarmsByPatient); 

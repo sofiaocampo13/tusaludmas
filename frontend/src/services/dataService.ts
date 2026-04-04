@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './cuidadorService';
+import { apiGet, apiPost, apiPut, apiDelete } from './cuidadorService';
 import type { User, Medicine, PatientLinked } from '../types/database';
 
 export async function getUserById(id: number) {
@@ -9,32 +9,22 @@ export async function getCaregiverPatients(caregiverId: number) {
   return apiGet<{ success: boolean; patients: PatientLinked[] }>(`/caregivers/${caregiverId}/patients`);
 }
 
-export async function listMedicinesCatalog() {
-  return apiGet<{ success: boolean; medicines: Medicine[] }>(`/medicines`);
+export async function searchMedicines(term: string) {
+  return apiGet<Medicine[]>(`/medicines/search?term=${encodeURIComponent(term)}`);
 }
 
-export async function createMedicineCatalog(payload: { name: string; description?: string | null }) {
-  return apiPost<{ success: boolean; id: number }>(`/medicines`, payload);
+export async function createPatientMedicine(patientId: number, payload: any) {
+  return apiPost<{ success: boolean; id: number }>(`/patients/${patientId}/medicines`, payload);
 }
 
 export async function listPatientMedicines(patientId: number) {
   return apiGet<{ success: boolean; patient_medicines: any[] }>(`/patients/${patientId}/medicines`);
 }
 
-export async function createPatientMedicine(
-  patientId: number,
-  payload: {
-    medicine_id: number;
-    dose?: string | null;
-    frequency?: string | null;
-    start_date?: string | null;
-    end_date?: string | null;
-    alarm_datetime?: string | null;
-    alarm_title?: string | null;
-  }
-) {
-  return apiPost<{ success: boolean; id: number; warning?: string }>(`/patients/${patientId}/medicines`, payload);
+export async function createAlarm(payload: any) {
+  return apiPost<{ success: boolean; id: number }>(`/alarms`, payload);
 }
+
 
 export async function listPatientAppointments(patientId: number) {
   return apiGet<{ success: boolean; appointments: any[] }>(`/patients/${patientId}/appointments`);
@@ -61,3 +51,14 @@ export async function listPatientAlarmas(patientId: number) {
   return apiGet<{ success: boolean; alarmas: any[] }>(`/patients/${patientId}/alarmas`);
 }
 
+export async function omitirAlarma(alarmId: number) {
+  return apiPut<{ success: boolean }>(`/alarms/${alarmId}`, { state: 2 });
+}
+
+export async function editarAlarma(alarmId: number, alarm_datetime: string) {
+  return apiPut<{ success: boolean }>(`/alarms/${alarmId}`, { alarm_datetime });
+}
+
+export async function eliminarAlarma(alarmId: number) {
+  return apiDelete<{ success: boolean }>(`/alarms/${alarmId}`);
+}
