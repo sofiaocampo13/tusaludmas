@@ -1,6 +1,14 @@
 import db from '../config/db.js';
 import bcrypt from 'bcrypt';
 
+// --- LISTAR CLÍNICAS ---
+export const getClinics = (req, res) => {
+    db.query(`SELECT id, name, address FROM locations ORDER BY name ASC`, (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: "Error al obtener clínicas" });
+        res.json({ success: true, clinics: results });
+    });
+};
+
 // --- REGISTRO DE CLÍNICA ---
 export const registerClinic = (req, res) => {
     const { name, address } = req.body;

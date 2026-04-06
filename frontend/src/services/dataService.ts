@@ -63,6 +63,10 @@ export async function eliminarAlarma(alarmId: number) {
   return apiDelete<{ success: boolean }>(`/alarms/${alarmId}`);
 }
 
+export async function getClinics() {
+  return apiGet<{ success: boolean; clinics: { id: number; name: string; address: string }[] }>('/external/clinics');
+}
+
 export async function linkPatientToCaregiver(caregiverId: number, link_code: string) {
   return apiPost<{ success: boolean; message?: string; patientId?: number }>(
     `/caregivers/${caregiverId}/link-patient`,
