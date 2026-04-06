@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, Alert, Modal, ActivityIndicator, Share, Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,6 +15,45 @@ import {
   updateUserProfile,
   linkPatientToCaregiver,
 } from '../../services/dataService';
+import { TERMINOS_TEXTO, POLITICA_TEXTO } from '../../constants/legalContent';
+
+// ─── Visor de documentos legales ─────────────────────────────────────────────
+
+function LegalDocModal({
+  visible, title, content, onClose,
+}: {
+  visible: boolean; title: string; content: string; onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <RNSafeAreaView style={legalStyles.container}>
+        <View style={legalStyles.header}>
+          <Text style={legalStyles.headerTitle} numberOfLines={1}>{title}</Text>
+          <TouchableOpacity style={legalStyles.closeBtn} onPress={onClose}>
+            <Text style={legalStyles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={legalStyles.body} showsVerticalScrollIndicator>
+          <Text style={legalStyles.bodyText}>{content}</Text>
+        </ScrollView>
+      </RNSafeAreaView>
+    </Modal>
+  );
+}
+
+const legalStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFF' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: '#004080',
+  },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: 'bold', color: '#FFF', marginRight: 12 },
+  closeBtn: { padding: 6 },
+  closeBtnText: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
+  body: { padding: 20, paddingBottom: 40 },
+  bodyText: { fontSize: 13, color: '#2C3E50', lineHeight: 22 },
+});
 
 type Props = { caregiverId?: number };
 
@@ -37,6 +76,10 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
   const [linkVisible, setLinkVisible] = useState(false);
   const [linkCode, setLinkCode] = useState('');
   const [linking, setLinking] = useState(false);
+
+  // Modales legales
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
 
   const caregiverName = useMemo(() => {
     if (!caregiver) return 'Cuidador';
@@ -162,7 +205,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
+    <RNSafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.navigate('/cuidador')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color="#004080" />
@@ -255,8 +298,37 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
             })
           )}
 
+          {/* ── Información legal ─────────────────────────────────────── */}
+          <Text style={styles.sectionTitle}>Información legal</Text>
+
+          <TouchableOpacity style={styles.legalRow} onPress={() => setShowTermsModal(true)}>
+            <Ionicons name="document-text-outline" size={18} color="#004080" style={styles.infoIcon} />
+            <Text style={styles.legalRowText}>Términos y condiciones de uso</Text>
+            <Ionicons name="chevron-forward" size={16} color="#CCC" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.legalRow} onPress={() => setShowPolicyModal(true)}>
+            <Ionicons name="shield-checkmark-outline" size={18} color="#004080" style={styles.infoIcon} />
+            <Text style={styles.legalRowText}>Política de tratamiento de datos</Text>
+            <Ionicons name="chevron-forward" size={16} color="#CCC" />
+          </TouchableOpacity>
+
         </ScrollView>
       )}
+
+      {/* ── Modales de documentos legales ─────────────────────────────── */}
+      <LegalDocModal
+        visible={showTermsModal}
+        title="Términos y Condiciones de Uso"
+        content={TERMINOS_TEXTO}
+        onClose={() => setShowTermsModal(false)}
+      />
+      <LegalDocModal
+        visible={showPolicyModal}
+        title="Política de Tratamiento de Datos Personales"
+        content={POLITICA_TEXTO}
+        onClose={() => setShowPolicyModal(false)}
+      />
 
       {/* ── Modal editar perfil ────────────────────────────────────────── */}
       <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
@@ -318,7 +390,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
           </TouchableOpacity>
         </View>
       </Modal>
-    </SafeAreaView>
+    </RNSafeAreaView>
   );
 };
 
@@ -404,6 +476,13 @@ const styles = StyleSheet.create({
   emptyPatients: { alignItems: 'center', paddingVertical: 30 },
   emptyText: { color: '#999', fontSize: 15, marginTop: 10, fontWeight: '600' },
   emptySubText: { color: '#BBB', fontSize: 13, marginTop: 4 },
+
+  // Legal
+  legalRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, borderBottomWidth: 1, borderColor: '#F0F0F0',
+  },
+  legalRowText: { flex: 1, fontSize: 14, color: '#333' },
 
   // Modal
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },

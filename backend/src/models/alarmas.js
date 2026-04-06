@@ -40,9 +40,9 @@ const Alarmas = {
       LEFT JOIN medicines m ON m.id = pm.medicine_id
       LEFT JOIN appointments ap ON ap.id = a.appointment_id
       LEFT JOIN locations l ON l.id = ap.location_id
-      WHERE a.users_id = ? AND a.state = 0
+      WHERE a.users_id = ?
       ORDER BY a.alarm_datetime DESC
-      LIMIT 50
+      LIMIT 100
     `;
     db.query(sql, [users_id], callback);
   },

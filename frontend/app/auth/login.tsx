@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { loginProvider, loginByCodeProvider} from '../../src/services/authService'; // Tu servicio ya creado
 
@@ -10,6 +11,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [linkCode, setLinkCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (type: 'standard' | 'code') => {
     setLoading(true);
@@ -81,13 +83,18 @@ export default function LoginScreen() {
           onChangeText={setIdentifier}
           autoCapitalize="none"
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          value={password}
-          secureTextEntry
-          onChangeText={setPassword}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Contraseña"
+            value={password}
+            secureTextEntry={!showPassword}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#888" />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity 
           onPress={() => router.push('/auth/forgot-password' as any)} 
           style={styles.forgotPasswordContainer}
@@ -125,6 +132,9 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
   smallText: { textAlign: 'center', color: '#888' },
   backButton: { position: 'absolute', top: 50, left: 20 },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 10 },
+  passwordInput: { flex: 1, padding: 12 },
+  eyeButton: { paddingHorizontal: 12 },
   patientButton: { backgroundColor: '#f0f0f0', padding: 20, marginTop: 30, borderWidth: 2, borderColor: '#004080' },
   patientButtonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#004080' },forgotPasswordContainer: {
     alignSelf: 'flex-end', // Esto lo mueve a la derecha

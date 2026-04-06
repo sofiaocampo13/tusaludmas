@@ -133,7 +133,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
       if (res.success && Array.isArray(res.alarmas)) {
         setTodasLasAlarmas(
           res.alarmas
-            .filter((a: any) => a.alarm_datetime)
+            .filter((a: any) => a.alarm_datetime && a.state !== 2)
             .map((a: any) => ({
               id: a.id,
               type: 'toma' as const,
@@ -141,7 +141,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
               detail: 'Medicamento programado',
               alarm_datetime: a.alarm_datetime,
               patient_medicine_id: a.patient_medicine_id,
-              state: a.state ?? 1,
+              state: a.state ?? 0,
             }))
         );
       }
@@ -283,17 +283,19 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
           ) : alarmasDia.length > 0 ? (
             alarmasDia.map((notif) => (
               <View key={notif.id} style={styles.timelineItem}>
-                <View style={[styles.pillIcon, { backgroundColor: '#004080' }]}>
+                <View style={[styles.pillIcon, { backgroundColor: notif.state === 1 ? '#4CAF50' : '#004080' }]}>
                   <FontAwesome5 name="pills" size={14} color="#FFF" />
                 </View>
-                <View style={styles.activityInfo}>
+                <View style={[styles.activityInfo, notif.state === 1 && styles.activityInfoTomada]}>
                   <View style={styles.activityRow}>
                     <Text style={styles.activityTitle} numberOfLines={2}>{notif.title}</Text>
                     <TouchableOpacity onPress={() => setMenuNotif(notif)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                       <Ionicons name="ellipsis-vertical" size={18} color="#666" />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.activityDetail}>{notif.detail}</Text>
+                  <Text style={styles.activityDetail}>
+                    {notif.state === 1 ? 'Tomada' : 'Medicamento programado'}
+                  </Text>
                   <Text style={styles.activityTime}>
                     <Ionicons name="time-outline" size={14} /> {formatAlarmTime(notif.alarm_datetime)}
                   </Text>
@@ -457,6 +459,7 @@ const styles = StyleSheet.create({
   timelineItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   pillIcon: { width: 28, height: 28, borderRadius: 14, marginRight: 12, justifyContent: 'center', alignItems: 'center' },
   activityInfo: { flex: 1, backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#EEE' },
+  activityInfoTomada: { backgroundColor: '#F1F8F1', borderColor: '#C8E6C9' },
   activityRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   activityTitle: { fontWeight: 'bold', fontSize: 14, flex: 1, marginRight: 8 },
   activityDetail: { color: '#666', fontSize: 12 },

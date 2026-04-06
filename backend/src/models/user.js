@@ -83,15 +83,13 @@ const User = {
     // ACTUALIZAR DATOS DEL USUARIO
     update: (userId, userData, callback) => {
         const { first_name, last_name, email, phone } = userData;
-        
-        const username = email ? email.split('@')[0] : null;
 
         const sql = `
-            UPDATE users 
-            SET first_name = ?, last_name = ?, email = ?, username = ?, phone = ?
+            UPDATE users
+            SET first_name = ?, last_name = ?, email = ?, phone = ?
             WHERE id = ?`;
 
-        db.query(sql, [first_name, last_name, email, username, phone, userId], callback);
+        db.query(sql, [first_name, last_name, email, phone, userId], callback);
     }
 };
 

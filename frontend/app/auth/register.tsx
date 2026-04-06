@@ -1,36 +1,77 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Alert, ActivityIndicator 
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView,
+  Alert, ActivityIndicator, Modal, SafeAreaView as RNSafeAreaView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ENDPOINTS } from '../../src/config/api';
+import { TERMINOS_TEXTO, POLITICA_TEXTO } from '../../src/constants/legalContent';
+
+// ─── Componente visor de documentos legales ────────────────────────────────────
+
+function LegalDocModal({
+  visible, title, content, onClose
+}: {
+  visible: boolean; title: string; content: string; onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <RNSafeAreaView style={modalStyles.container}>
+        <View style={modalStyles.header}>
+          <Text style={modalStyles.headerTitle} numberOfLines={1}>{title}</Text>
+          <TouchableOpacity style={modalStyles.closeBtn} onPress={onClose}>
+            <Text style={modalStyles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={modalStyles.body} showsVerticalScrollIndicator>
+          <Text style={modalStyles.bodyText}>{content}</Text>
+        </ScrollView>
+      </RNSafeAreaView>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFF' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: '#004080'
+  },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: 'bold', color: '#FFF', marginRight: 12 },
+  closeBtn: { padding: 6 },
+  closeBtnText: { fontSize: 18, color: '#FFF', fontWeight: 'bold' },
+  body: { padding: 20, paddingBottom: 40 },
+  bodyText: { fontSize: 13, color: '#2C3E50', lineHeight: 22 },
+});
+
+// ─── Pantalla de registro ───────────────────────────────────────────────────────
 
 export default function RegisterPage() {
   const router = useRouter();
-  
-  // Estados del formulario
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState(''); // Nuevo para paciente
+  const [age, setAge] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [roleType, setRoleType] = useState<'paciente' | 'cuidador'>('paciente');
-  const [acceptedTerms, setAcceptedTerms] = useState(false); // Para políticas
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+
   const handleRegister = async () => {
-    // Validación básica según el rol
     if (!firstName || !lastName || (roleType === 'paciente' && !age) || (roleType === 'cuidador' && (!email || !password))) {
       Alert.alert("Error", "Por favor completa todos los campos requeridos.");
       return;
     }
-
     if (!acceptedTerms) {
       Alert.alert("Aviso", "Debes aceptar las políticas de privacidad para continuar.");
       return;
     }
-
     setLoading(true);
     try {
       const response = await fetch(ENDPOINTS.register, {
@@ -42,14 +83,13 @@ export default function RegisterPage() {
           age: roleType === 'paciente' ? age : null,
           email: roleType === 'cuidador' ? email : null,
           password: roleType === 'cuidador' ? password : null,
-          roleType: roleType 
+          roleType: roleType
         }),
       });
-
       const data = await response.json();
       if (response.ok && data.success) {
         Alert.alert("¡Éxito!", "Registro completado.");
-        router.push('/auth/login'); 
+        router.push('/auth/login');
       } else {
         Alert.alert("Error", data.message || "No se pudo registrar.");
       }
@@ -64,22 +104,20 @@ export default function RegisterPage() {
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.appCanvas}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          
+
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>Configura tu perfil en TuSalud+</Text>
 
           <View style={styles.form}>
-            {/* SELECTOR DE ROL PRIMERO PARA CAMBIAR EL FORMULARIO */}
             <Text style={styles.label}>¿Quién eres?</Text>
             <View style={styles.roleSelectorContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.roleOption, roleType === 'paciente' && styles.roleOptionActive]}
                 onPress={() => setRoleType('paciente')}
               >
                 <Text style={[styles.roleOptionText, roleType === 'paciente' && styles.roleOptionTextActive]}>Soy Paciente</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.roleOption, roleType === 'cuidador' && styles.roleOptionActive]}
                 onPress={() => setRoleType('cuidador')}
               >
@@ -93,53 +131,58 @@ export default function RegisterPage() {
             <Text style={styles.label}>Apellido</Text>
             <TextInput style={styles.input} placeholder="Tu apellido" value={lastName} onChangeText={setLastName} />
 
-            {/* CAMPOS CONDICIONALES */}
             {roleType === 'paciente' ? (
               <>
                 <Text style={styles.label}>Edad</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="Ej: 25" 
-                  keyboardType="numeric" 
-                  value={age} 
-                  onChangeText={setAge} 
+                <TextInput
+                  style={styles.input} placeholder="Ej: 25" keyboardType="numeric"
+                  value={age} onChangeText={setAge}
                 />
               </>
             ) : (
               <>
                 <Text style={styles.label}>Correo Electrónico</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="ejemplo@correo.com" 
-                  keyboardType="email-address" 
-                  autoCapitalize="none"
-                  value={email} 
-                  onChangeText={setEmail} 
+                <TextInput
+                  style={styles.input} placeholder="ejemplo@correo.com" keyboardType="email-address"
+                  autoCapitalize="none" value={email} onChangeText={setEmail}
                 />
                 <Text style={styles.label}>Contraseña</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="Mínimo 6 caracteres" 
-                  secureTextEntry 
-                  value={password} 
-                  onChangeText={setPassword} 
+                <TextInput
+                  style={styles.input} placeholder="Mínimo 6 caracteres" secureTextEntry
+                  value={password} onChangeText={setPassword}
                 />
               </>
             )}
 
-            {/* POLÍTICAS DE PRIVACIDAD */}
-            <TouchableOpacity 
-              style={styles.termsContainer} 
+            {/* ACEPTACIÓN DE TÉRMINOS */}
+            <TouchableOpacity
+              style={styles.termsContainer}
               onPress={() => setAcceptedTerms(!acceptedTerms)}
             >
               <View style={[styles.checkbox, acceptedTerms && styles.checkboxActive]}>
                 {acceptedTerms && <Text style={styles.checkMark}>✓</Text>}
               </View>
-              <Text style={styles.termsText}>Acepto las políticas de privacidad y términos de uso.</Text>
+              <Text style={styles.termsText}>
+                {'Acepto los '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={(e) => { e.stopPropagation(); setShowTermsModal(true); }}
+                >
+                  términos y condiciones de uso
+                </Text>
+                {' y las '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={(e) => { e.stopPropagation(); setShowPolicyModal(true); }}
+                >
+                  políticas de tratamiento de datos
+                </Text>
+                {'.'}
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.registerBtn, (loading || !acceptedTerms) && { opacity: 0.6 }]} 
+            <TouchableOpacity
+              style={[styles.registerBtn, (loading || !acceptedTerms) && { opacity: 0.6 }]}
               onPress={handleRegister}
               disabled={loading || !acceptedTerms}
             >
@@ -152,6 +195,20 @@ export default function RegisterPage() {
           </View>
         </ScrollView>
       </View>
+
+      {/* MODALES DE DOCUMENTOS LEGALES */}
+      <LegalDocModal
+        visible={showTermsModal}
+        title="Términos y Condiciones de Uso"
+        content={TERMINOS_TEXTO}
+        onClose={() => setShowTermsModal(false)}
+      />
+      <LegalDocModal
+        visible={showPolicyModal}
+        title="Política de Tratamiento de Datos Personales"
+        content={POLITICA_TEXTO}
+        onClose={() => setShowPolicyModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -170,12 +227,12 @@ const styles = StyleSheet.create({
   roleOptionActive: { backgroundColor: '#004080', borderColor: '#004080' },
   roleOptionText: { color: '#7F8C8D', fontWeight: 'bold' },
   roleOptionTextActive: { color: '#FFF' },
-  // Estilos del Checkbox
   termsContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   checkbox: { width: 22, height: 22, borderWidth: 2, borderColor: '#004080', borderRadius: 5, marginRight: 10, justifyContent: 'center', alignItems: 'center' },
   checkboxActive: { backgroundColor: '#004080' },
   checkMark: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
   termsText: { flex: 1, fontSize: 13, color: '#7F8C8D' },
+  termsLink: { color: '#004080', fontWeight: '600', textDecorationLine: 'underline' },
   registerBtn: { backgroundColor: '#004080', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   registerBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
   backLink: { textAlign: 'center', marginTop: 20, color: '#004080', fontWeight: '700' }
