@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 export default function WelcomeScreen() {
@@ -11,6 +12,7 @@ export default function WelcomeScreen() {
         
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
+            {/* El círculo del logo ahora es el azul oscuro oficial */}
             <Text style={styles.logoText}>TUSALUD+</Text>
           </View>
         </View>
@@ -43,13 +45,37 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   logoContainer: { marginBottom: 40 },
-  logoPlaceholder: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#3498DB', justifyContent: 'center', alignItems: 'center' },
+  // Círculo del logo unificado
+  logoPlaceholder: { 
+    width: 120, 
+    height: 120, 
+    borderRadius: 60, 
+    backgroundColor: '#004080', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
   logoText: { color: '#FFF', fontWeight: 'bold', fontSize: 18 },
-  welcomeTitle: { fontSize: 24, fontWeight: 'bold', color: '#2C3E50', marginBottom: 10 },
+  // Título principal ahora más oscuro para combinar mejor
+  welcomeTitle: { fontSize: 24, fontWeight: 'bold', color: '#004080', marginBottom: 10 },
   welcomeSubtitle: { fontSize: 16, color: '#7F8C8D', marginBottom: 50 },
   buttonContainer: { width: '100%' },
-  loginBtn: { backgroundColor: '#3498DB', padding: 16, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
+  // Botón principal unificado
+  loginBtn: { 
+    backgroundColor: '#004080', 
+    padding: 16, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    marginBottom: 15 
+  },
   loginBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  registerBtn: { backgroundColor: '#FFF', padding: 16, borderRadius: 10, alignItems: 'center', borderWidth: 2, borderColor: '#3498DB' },
-  registerBtnText: { color: '#3498DB', fontWeight: 'bold', fontSize: 16 },
+  // Botón secundario con borde azul oscuro
+  registerBtn: { 
+    backgroundColor: '#FFF', 
+    padding: 16, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    borderWidth: 2, 
+    borderColor: '#004080' 
+  },
+  registerBtnText: { color: '#004080', fontWeight: 'bold', fontSize: 16 },
 });

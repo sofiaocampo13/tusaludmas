@@ -1,10 +1,11 @@
 import db from '../config/db.js';
 
 const Alarmas = {
+  // state: 0=pendiente, 1=tomada, 2=no tomada, 3=pospuesta 10 min
   createForPatientMedicine: (users_id, patient_medicine_id, title, alarm_datetime, callback) => {
     const sql = `
       INSERT INTO alarmas (users_id, patient_medicine_id, title, alarm_datetime, state)
-      VALUES (?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, 0)
     `;
     db.query(sql, [users_id, patient_medicine_id, title ?? null, alarm_datetime ?? null], callback);
   },
@@ -12,7 +13,7 @@ const Alarmas = {
   createForAppointment: (users_id, appointment_id, title, alarm_datetime, callback) => {
     const sql = `
       INSERT INTO alarmas (users_id, appointment_id, title, alarm_datetime, state)
-      VALUES (?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, 0)
     `;
     db.query(sql, [users_id, appointment_id, title ?? null, alarm_datetime ?? null], callback);
   },
@@ -39,11 +40,20 @@ const Alarmas = {
       LEFT JOIN medicines m ON m.id = pm.medicine_id
       LEFT JOIN appointments ap ON ap.id = a.appointment_id
       LEFT JOIN locations l ON l.id = ap.location_id
-      WHERE a.users_id = ? AND a.state = 1
+      WHERE a.users_id = ? AND a.state = 0
       ORDER BY a.alarm_datetime DESC
       LIMIT 50
     `;
     db.query(sql, [users_id], callback);
+  },
+
+  snooze: (id, callback) => {
+    const sql = `
+      UPDATE alarmas
+      SET state = 3, alarm_datetime = DATE_ADD(NOW(), INTERVAL 10 MINUTE)
+      WHERE id = ?
+    `;
+    db.query(sql, [id], callback);
   },
 };
 

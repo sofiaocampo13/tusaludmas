@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   SafeAreaView, 
   ActivityIndicator,
-  Alert 
+  Alert,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -19,27 +20,57 @@ export default function UsersScreen() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  const AZUL_CORRECTO = '#004080'; // El azul que solicitaste
+
   useEffect(() => {
     loadUsers();
   }, []);
 
   const loadUsers = async () => {
     setLoading(true);
-    const response = await getAllUsersProvider();
-    if (response.success && response.users) {
-      setUsers(response.users);
-    } else {
-      Alert.alert("Error", response.message || "No se pudo cargar la lista");
+    try {
+      const response = await getAllUsersProvider();
+      if (response.success && response.users) {
+        setUsers(response.users);
+      } else {
+        Alert.alert("Error", response.message || "No se pudo cargar la lista");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const toggleManage = (id: number) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const handleEdit = (item: UserData) => {
+    // Enviamos el objeto 'item' completo como parámetro para que la pantalla 
+    // de edición reciba los datos reales y no datos genéricos.
+    router.push({
+      pathname: '/admin/edit-user' as any,
+      params: { user: JSON.stringify(item) }
+    });
+  };
+
+  const handleSuspend = (item: UserData) => {
+    Alert.alert(
+      "Confirmar Acción",
+      `¿Estás seguro de que deseas suspender a ${item.username}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Suspender", 
+          style: "destructive", 
+          onPress: () => Alert.alert("Éxito", "Usuario suspendido correctamente.") 
+        }
+      ]
+    );
+  };
+
   const renderUserItem = ({ item }: { item: UserData }) => {
-    // Lógica para evitar el undefined
     const displayName = item.first_name 
       ? `${item.first_name} ${item.last_name || ''}`.trim() 
       : item.username;
@@ -52,17 +83,17 @@ export default function UsersScreen() {
       <View style={styles.cardContainer}>
         <View style={styles.userCard}>
           <View style={styles.userInfoContainer}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{initials}</Text>
+            <View style={[styles.avatarCircle, { borderColor: AZUL_CORRECTO }]}>
+              <Text style={[styles.avatarText, { color: AZUL_CORRECTO }]}>{initials}</Text>
             </View>
             <View style={styles.textContainer}>
               <Text style={styles.userName}>{displayName}</Text>
-              <Text style={styles.userDate}>{item.email}</Text>
+              <Text style={styles.userEmail}>{item.email}</Text>
             </View>
           </View>
           
           <TouchableOpacity 
-            style={[styles.manageBtn, expandedId === item.id && styles.manageBtnActive]} 
+            style={[styles.manageBtn, { backgroundColor: AZUL_CORRECTO }]} 
             onPress={() => toggleManage(item.id)}
           >
             <Text style={styles.manageBtnText}>Gestionar</Text>
@@ -79,15 +110,15 @@ export default function UsersScreen() {
           <View style={styles.expandedMenu}>
             <TouchableOpacity 
               style={styles.menuOption} 
-              onPress={() => Alert.alert("Editar", `Editando a ${displayName}`)}
+              onPress={() => handleEdit(item)}
             >
-              <Ionicons name="create-outline" size={18} color="#3498DB" />
-              <Text style={styles.menuOptionText}>Editar Datos</Text>
+              <Ionicons name="create-outline" size={18} color={AZUL_CORRECTO} />
+              <Text style={[styles.menuOptionText, { color: AZUL_CORRECTO }]}>Editar Datos</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.menuOption} 
-              onPress={() => Alert.alert("Estado", `ID: ${item.id} - Estado: ${item.state}`)}
+              onPress={() => handleSuspend(item)}
             >
               <Ionicons name="ban-outline" size={18} color="#E74C3C" />
               <Text style={[styles.menuOptionText, { color: '#E74C3C' }]}>Suspender</Text>
@@ -100,20 +131,21 @@ export default function UsersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestionar Usuarios</Text>
+        <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
         <TouchableOpacity onPress={loadUsers}>
-          <Ionicons name="refresh" size={24} color="#3498DB" />
+          <Ionicons name="refresh" size={24} color={AZUL_CORRECTO} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#3498DB" />
-          <Text style={styles.loaderText}>Cargando desde MySQL...</Text>
+          <ActivityIndicator size="large" color={AZUL_CORRECTO} />
+          <Text style={styles.loaderText}>Sincronizando con base de datos...</Text>
         </View>
       ) : (
         <FlatList
@@ -131,77 +163,81 @@ export default function UsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#F4F6F7' },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    padding: 20, 
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE'
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  headerTitle: { fontSize: 19, fontWeight: 'bold', color: '#333' },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loaderText: { marginTop: 10, color: '#666' },
+  loaderText: { marginTop: 10, color: '#666', fontWeight: '500' },
   listContent: { padding: 15 },
   cardContainer: { 
     backgroundColor: '#FFF', 
-    borderRadius: 12, 
-    marginBottom: 10, 
-    elevation: 2,
+    borderRadius: 15, 
+    marginBottom: 12, 
+    overflow: 'hidden',
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   userCard: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    padding: 15 
+    padding: 16 
   },
-  userInfoContainer: { flexDirection: 'row', alignItems: 'center' },
+  userInfoContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   avatarCircle: { 
-    width: 45, 
-    height: 45, 
-    borderRadius: 22.5, 
-    backgroundColor: '#E8F0FE', 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    backgroundColor: '#F0F4F8', 
     justifyContent: 'center', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    borderWidth: 1.5
   },
-  avatarText: { fontWeight: 'bold', color: '#3498DB', fontSize: 16 },
-  textContainer: { marginLeft: 12 },
-  userName: { fontSize: 16, fontWeight: 'bold', color: '#2C3E50' },
-  userDate: { fontSize: 12, color: '#7F8C8D', marginTop: 2 },
+  avatarText: { fontWeight: 'bold', fontSize: 16 },
+  textContainer: { marginLeft: 12, flex: 1 },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#1C2833' },
+  userEmail: { fontSize: 13, color: '#566573', marginTop: 1 },
   manageBtn: { 
     flexDirection: 'row',
-    backgroundColor: '#3498DB', 
-    paddingHorizontal: 12, 
-    paddingVertical: 8, 
-    borderRadius: 8,
-    alignItems: 'center'
+    paddingHorizontal: 14, 
+    paddingVertical: 9, 
+    borderRadius: 10,
+    alignItems: 'center',
+    elevation: 2
   },
-  manageBtnActive: { backgroundColor: '#2874A6' },
-  manageBtnText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  manageBtnText: { color: '#FFF', fontSize: 13, fontWeight: 'bold' },
   expandedMenu: { 
     flexDirection: 'row', 
     borderTopWidth: 1, 
-    borderTopColor: '#F0F0F0', 
-    backgroundColor: '#FBFCFC',
-    padding: 12,
+    borderTopColor: '#EBEDEF', 
+    backgroundColor: '#FDFEFE',
+    paddingVertical: 12,
     justifyContent: 'space-around'
   },
   menuOption: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    padding: 5 
+    paddingHorizontal: 15
   },
   menuOptionText: { 
     marginLeft: 8, 
     fontSize: 14, 
-    fontWeight: '600', 
-    color: '#3498DB' 
+    fontWeight: 'bold' 
   },
-  emptyText: { textAlign: 'center', marginTop: 50, color: '#999' }
+  emptyText: { textAlign: 'center', marginTop: 50, color: '#95A5A6', fontSize: 15 }
 });

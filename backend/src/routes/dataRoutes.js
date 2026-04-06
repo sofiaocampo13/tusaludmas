@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getUserById,
   getCaregiverPatients,
+  linkPatientToCaregiver,
   listMedicinesCatalog,
   createMedicineCatalog,
   listPatientMedicines,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.get('/users/:id', getUserById);
 router.get('/caregivers/:caregiverId/patients', getCaregiverPatients);
+router.post('/caregivers/:caregiverId/link-patient', linkPatientToCaregiver);
 
 router.get('/medicines', listMedicinesCatalog);
 router.post('/medicines', createMedicineCatalog);

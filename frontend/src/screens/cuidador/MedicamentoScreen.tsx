@@ -1,225 +1,408 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import type { Medicine, PatientLinked } from '../../types/database';
-import { createMedicineCatalog, createPatientMedicine, getCaregiverPatients, listMedicinesCatalog, listPatientMedicines } from '../../services/dataService';
+import {
+  getCaregiverPatients,
+  createPatientMedicine,
+  createAlarm,
+  searchMedicines,
+  listPatientMedicines // Añadido para listar los ya creados
+} from '../../services/dataService';
 
-type Props = { caregiverId?: number };
+type Toma = { id: string; hora: Date; activa: boolean; };
 
-const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [dosis, setDosis] = useState('');
-  const [frecuencia, setFrecuencia] = useState('');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
-  const [loading, setLoading] = useState(false);
+const MedicamentoScreen: React.FC<{ caregiverId: number }> = ({ caregiverId }) => {
+  const router = useRouter();
   const [patient, setPatient] = useState<PatientLinked | null>(null);
-  const [catalog, setCatalog] = useState<Medicine[]>([]);
   const [filteredCatalog, setFilteredCatalog] = useState<Medicine[]>([]);
-  const [assigned, setAssigned] = useState<any[]>([]);
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [pickerTarget, setPickerTarget] = useState<'inicio' | 'fin' | null>(null);
-  const [horarios, setHorarios] = useState<string[]>(['06:00']);
-  const [nuevoHorario, setNuevoHorario] = useState('');
+  const [assigned, setAssigned] = useState<any[]>([]); // Estado para medicamentos asignados
+  const [nombreBusqueda, setNombreBusqueda] = useState('');
+  const [selectedMed, setSelectedMed] = useState<Medicine | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // --- LÓGICA DE CALENDARIO (RESTAURADA) ---
-  const diasSemana = useMemo(() => {
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    const days = [];
-    const dayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-      days.push({ 
-        num: date.getDate().toString(), 
-        label: dayLabels[i], 
-        isToday: date.toDateString() === today.toDateString() 
-      });
+  const [dosisValor, setDosisValor] = useState('');
+  const [dosisUnidad, setDosisUnidad] = useState('mg');
+  const [frecuenciaValor, setFrecuenciaValor] = useState('12');
+  const [frecuenciaTipo, setFrecuenciaTipo] = useState('Horas');
+
+  const [fechaInicio, setFechaInicio] = useState(new Date());
+  const [fechaFin, setFechaFin] = useState(new Date(new Date().setDate(new Date().getDate() + 7)));
+  const [horaInicio, setHoraInicio] = useState(new Date());
+
+  const [planTomas, setPlanTomas] = useState<Toma[]>([]);
+  const [showPicker, setShowPicker] = useState<'inicio' | 'fin' | 'hora' | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [generarTodo, setGenerarTodo] = useState(true); // Nuevo estado: true = todo el tratamiento, false = solo 2 días
+
+  // Función para recargar la lista de medicamentos asignados
+  const reloadAssigned = async (patientId: number) => {
+    try {
+      const res = await listPatientMedicines(patientId);
+      if (res.success) {
+        setAssigned(res.patient_medicines || []);
+      }
+    } catch (e) {
+      console.error("Error cargando asignados:", e);
     }
-    return days;
-  }, []);
-
-  const patientName = useMemo(() => {
-    if (!patient) return 'Cargando...';
-    return `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
-  }, [patient]);
-
-  const isValidTime = (time: string): boolean => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
-
-  const reload = async (patientId: number) => {
-    const [catRes, pmRes] = await Promise.all([listMedicinesCatalog(), listPatientMedicines(patientId)]);
-    setCatalog(catRes.medicines || []);
-    setAssigned(pmRes.patient_medicines || []);
   };
 
   useEffect(() => {
-    if (caregiverId) {
-      getCaregiverPatients(caregiverId).then(res => {
-        const p = res.patients?.[0] || null;
+    getCaregiverPatients(caregiverId).then(res => {
+      if (res.success && res.patients.length > 0) {
+        const p = res.patients[0];
         setPatient(p);
-        reload(p ? p.id : caregiverId);
-      });
-    }
+        reloadAssigned(p.id); // Cargar lista al entrar
+      }
+    });
   }, [caregiverId]);
 
-  const handleNombreChange = (text: string) => {
-    setNombre(text);
-    if (text.trim().length > 0) {
-      const filtered = catalog.filter(m => m.name.toLowerCase().includes(text.toLowerCase()));
-      setFilteredCatalog(filtered);
-      setShowSuggestions(true);
-    } else setShowSuggestions(false);
+  const validarDosis = (valor: string, unidad: string): boolean => {
+    const num = parseFloat(valor);
+    if (isNaN(num) || num <= 0) return false;
+    const limites: Record<string, number> = {
+      'mg': 2000, 'ml': 50, 'tabletas': 5, 'gotas': 60
+    };
+    if (num > limites[unidad]) {
+      Alert.alert("Dosis Inusual", `Has ingresado ${num} ${unidad}. Verifica si es correcta.`);
+      return false;
+    }
+    return true;
+  };
+
+  const handleBusqueda = async (text: string) => {
+    setNombreBusqueda(text);
+    if (text.trim().length > 2) {
+      setLoadingSearch(true);
+      try {
+        const res: any = await searchMedicines(text);
+        if (res && Array.isArray(res)) {
+          setFilteredCatalog(res);
+          setShowSuggestions(true);
+        }
+      } catch (e) {
+        console.error("Error en búsqueda:", e);
+      } finally {
+        setLoadingSearch(false);
+      }
+    } else {
+      setShowSuggestions(false);
+    }
   };
 
   const selectMedicine = (item: Medicine) => {
-    setNombre(item.name);
-    setDescripcion(item.description || '');
+    setSelectedMed(item);
+    setNombreBusqueda(item.name);
     setShowSuggestions(false);
   };
 
-  const onPickerChange = (event: DateTimePickerEvent, date?: Date) => {
-    setPickerVisible(false);
-    if (event.type === 'dismissed' || !date) return;
-    const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    if (pickerTarget === 'inicio') setFechaInicio(formatted);
-    else if (pickerTarget === 'fin') setFechaFin(formatted);
+  const calcularPizarra = (forzarTodo?: boolean) => {
+    if (!validarDosis(dosisValor, dosisUnidad)) return;
+    const fValor = parseInt(frecuenciaValor);
+    if (isNaN(fValor) || fValor <= 0) return Alert.alert("Error", "Frecuencia no válida");
+
+    const nuevas: Toma[] = [];
+
+    // 1. NORMALIZACIÓN DE FECHAS
+    // Seteamos la fecha de inicio con la hora exacta elegida
+    let current = new Date(fechaInicio);
+    current.setHours(horaInicio.getHours(), horaInicio.getMinutes(), 0, 0);
+
+    // Seteamos la fecha fin al último segundo del día para no perder tomas
+    const limiteFinal = new Date(fechaFin);
+    limiteFinal.setHours(23, 59, 59, 999);
+
+    // 2. DETERMINAMOS EL MODO Y LÍMITE VISUAL
+    const modoTodo = forzarTodo !== undefined ? forzarTodo : generarTodo;
+
+    // Si es "parte", el límite son 48 horas desde la primera toma.
+    const fechaLimiteVisual = modoTodo
+      ? limiteFinal
+      : new Date(current.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    // 3. EL BUCLE DE GENERACIÓN
+    // Usamos una variable de seguridad para evitar bucles infinitos
+    let seguridad = 0;
+    while (current <= limiteFinal && current <= fechaLimiteVisual && seguridad < 500) {
+
+      // Si es "solo una parte", limitamos a las primeras 3 tomas
+      if (!modoTodo && nuevas.length >= 3) break;
+
+      nuevas.push({
+        id: Math.random().toString(36).substring(2, 9),
+        // IMPORTANTE: Creamos una nueva instancia de fecha para que no se hereden cambios
+        hora: new Date(current.getTime()),
+        activa: true
+      });
+
+      // 4. INCREMENTO PRECISO
+      if (frecuenciaTipo === 'Horas') {
+        current.setHours(current.getHours() + fValor);
+      } else {
+        current.setDate(current.getDate() + fValor);
+      }
+
+      seguridad++;
+    }
+
+    setPlanTomas(nuevas);
   };
 
-  const handleCrear = async () => {
-    const targetId = patient?.id || caregiverId;
-    if (!targetId || !nombre.trim()) {
-      Alert.alert('Error', 'El nombre es obligatorio');
-      return;
-    }
+  const formatearFechaLocal = (date: Date) => {
+  // Usamos Intl.DateTimeFormat para obtener las partes de la fecha en la zona horaria específica
+  const opciones: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+
+  const formatter = new Intl.DateTimeFormat('en-CA', opciones); // 'en-CA' genera formato YYYY-MM-DD
+  const partes = formatter.formatToParts(date);
+
+  // Extraemos los valores de las partes para armar el string final
+  const mapping = Object.fromEntries(partes.map(p => [p.type, p.value]));
+
+  return `${mapping.year}-${mapping.month}-${mapping.day} ${mapping.hour}:${mapping.minute}:${mapping.second}`;
+};
+
+  const ejecutarGuardado = async () => {
+    if (!patient || !selectedMed) return;
     setLoading(true);
     try {
-      const existing = catalog.find(m => m.name.toLowerCase() === nombre.trim().toLowerCase());
-      let mId = existing?.id;
-      if (!mId) {
-        const created = await createMedicineCatalog({ name: nombre.trim(), description: descripcion.trim() || null });
-        mId = created.id;
-      }
-      const alarmTime = (fechaInicio && horarios.length > 0) ? `${fechaInicio} ${horarios[0]}:00` : null;
-      await createPatientMedicine(targetId, {
-        medicine_id: mId!,
-        dose: dosis.trim(),
-        frequency: `Horas: ${horarios.join(', ')}`,
-        start_date: fechaInicio || null,
-        end_date: fechaFin || null,
-        alarm_datetime: alarmTime,
-        alarm_title: `Toma: ${nombre}`,
+      const resPM = await createPatientMedicine(patient.id, {
+        medicine_id: selectedMed.id,
+        dose: `${dosisValor} ${dosisUnidad}`,
+        frequency: `Cada ${frecuenciaValor} ${frecuenciaTipo}`,
+        start_date: fechaInicio.toISOString().split('T')[0],
+        end_date: fechaFin.toISOString().split('T')[0]
       });
-      await reload(targetId);
-      setNombre(''); setDescripcion(''); setDosis('');
-      Alert.alert('Éxito', 'Medicamento registrado');
+
+      if (resPM.success) {
+        // Lógica de filtrado según la preferencia del usuario
+        const tomasAProcesar = generarTodo
+          ? planTomas
+          : planTomas.slice(0, 5); // Por ejemplo, solo las primeras 5 si elige "una parte"
+
+        for (const toma of tomasAProcesar) {
+          const mysqlDateTime = formatearFechaLocal(toma.hora);
+          await createAlarm({
+            users_id: patient.id,
+            patient_medicine_id: resPM.id,
+            title: `Toma: ${selectedMed.name}`,
+            alarm_datetime: mysqlDateTime,
+            state: 0
+          });
+        }
+
+        Alert.alert("Éxito", `Tratamiento creado con ${tomasAProcesar.length} alarmas.`);
+        setPlanTomas([]);
+        setNombreBusqueda('');
+        reloadAssigned(patient.id);
+      }
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar');
-    } finally { setLoading(false); }
+      Alert.alert("Error", "Fallo al guardar.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}><Ionicons name="chevron-back" size={24} color="#333" /></TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.navigate('/cuidador')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="chevron-back" size={24} color="#004080" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Agregar Medicamento</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* INFO PACIENTE (RESTAURADA) */}
-        <Text style={styles.patientLabel}>Paciente: {patientName}</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
 
-        {/* CALENDAR STRIP (RESTAURADA) */}
-        <View style={styles.calendarStrip}>
-          {diasSemana.map((item, index) => (
-            <View key={index} style={[styles.dayItem, item.isToday && styles.dayActive]}>
-              <Text style={[styles.dayText, item.isToday && styles.dayTextActive]}>{item.num}</Text>
-              <Text style={[styles.dayLabel, item.isToday && styles.dayTextActive]}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Nombre Medicamento</Text>
-        <View style={{ zIndex: 100 }}>
-          <TextInput style={styles.input} value={nombre} onChangeText={handleNombreChange} placeholder="Nombre" />
-          {showSuggestions && filteredCatalog.length > 0 && (
-            <View style={styles.suggestions}>
-              {filteredCatalog.map(item => (
-                <TouchableOpacity key={item.id} style={styles.suggestionItem} onPress={() => selectMedicine(item)}>
-                  <Text style={{ fontSize: 16 }}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {patient && (
+            <Text style={styles.patientLabel}>Paciente: {patient.first_name} {patient.last_name}</Text>
           )}
-        </View>
 
-        <Text style={styles.label}>Descripción</Text>
-        <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} multiline value={descripcion} onChangeText={setDescripcion} placeholder="Descripción" />
+          <Text style={styles.label}>Nombre Medicamento</Text>
+          <View style={styles.autocompleteContainer}>
+            <TextInput style={styles.input} value={nombreBusqueda} onChangeText={handleBusqueda} placeholder="Ej: Acetaminofen" />
+            {loadingSearch && <ActivityIndicator style={styles.loaderSearch} color="#004080" />}
+            {showSuggestions && (
+              <View style={styles.suggestions}>
+                {filteredCatalog.map(m => (
+                  <TouchableOpacity key={m.id} style={styles.suggestionItem} onPress={() => selectMedicine(m)}>
+                    <Text style={styles.suggestionName}>{m.name}</Text>
+                    <Text style={styles.suggestionDetail}>{m.principio_activo} | {m.concentracion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
 
-        <Text style={styles.label}>Dosis</Text>
-        <TextInput style={styles.input} value={dosis} onChangeText={setDosis} placeholder="Ej: 10mg" />
+          <Text style={styles.label}>Dosis</Text>
+          <View style={styles.row}>
+            <TextInput style={[styles.input, { flex: 1.5 }]} keyboardType="numeric" value={dosisValor} onChangeText={setDosisValor} placeholder="Cant." />
+            <View style={styles.pickerBox}>
+              <Picker selectedValue={dosisUnidad} onValueChange={(v) => setDosisUnidad(v)}>
+                <Picker.Item label="mg" value="mg" /><Picker.Item label="ml" value="ml" />
+                <Picker.Item label="Tabletas" value="tabletas" /><Picker.Item label="Gotas" value="gotas" />
+              </Picker>
+            </View>
+          </View>
 
-        <Text style={styles.label}>Frecuencia</Text>
-        <TextInput style={styles.input} value={frecuencia} onChangeText={setFrecuencia} placeholder="Ej: 1 vez al día" />
+          <Text style={styles.label}>Frecuencia (Cada cuánto)</Text>
+          <View style={styles.row}>
+            <TextInput style={[styles.input, { flex: 1 }]} keyboardType="numeric" value={frecuenciaValor} onChangeText={setFrecuenciaValor} placeholder="Ej: 8" />
+            <View style={styles.pickerBox}>
+              <Picker selectedValue={frecuenciaTipo} onValueChange={(v) => setFrecuenciaTipo(v)}>
+                <Picker.Item label="Horas" value="Horas" /><Picker.Item label="Días" value="Días" />
+              </Picker>
+            </View>
+          </View>
 
-        <Text style={styles.label}>Fechas del Tratamiento</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <TouchableOpacity style={[styles.input, { width: '48%' }]} onPress={() => { setPickerTarget('inicio'); setPickerVisible(true); }}>
-            <Text>{fechaInicio || 'Fecha Inicio'}</Text>
+          <Text style={styles.label}>Duración del Tratamiento</Text>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker('inicio')}>
+              <Ionicons name="calendar-outline" size={18} color="#666" />
+              <Text> {fechaInicio.toLocaleDateString()}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker('fin')}>
+              <Ionicons name="calendar-outline" size={18} color="#666" />
+              <Text> {fechaFin.toLocaleDateString()}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.label}>Horario Primera Toma</Text>
+          <TouchableOpacity style={[styles.input, styles.rowAlignCenter]} onPress={() => setShowPicker('hora')}>
+            <Ionicons name="time-outline" size={22} color="#004080" style={{ marginRight: 10 }} />
+            <Text style={{ fontSize: 16 }}>{horaInicio.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.input, { width: '48%' }]} onPress={() => { setPickerTarget('fin'); setPickerVisible(true); }}>
-            <Text>{fechaFin || 'Fecha Fin'}</Text>
-          </TouchableOpacity>
-        </View>
 
-        <Text style={styles.label}>Horario</Text>
-        <View style={{ flexDirection: 'row', marginBottom: 15, alignItems: 'center' }}>
-          <TextInput 
-            style={[styles.input, { flex: 1, marginBottom: 0 }]} 
-            placeholder="Ej: 6:00, 8:30" 
-            value={nuevoHorario} 
-            onChangeText={setNuevoHorario}
-          />
-          <TouchableOpacity style={styles.addBtn} onPress={() => {
-            if (isValidTime(nuevoHorario)) {
-              setHorarios([...new Set([...horarios, nuevoHorario])].sort());
-              setNuevoHorario('');
-            } else Alert.alert('Error', 'Formato HH:MM');
-          }}>
-            <Ionicons name="add" size={28} color="#FFF" />
+          <TouchableOpacity style={styles.calcBtn} onPress={() => calcularPizarra()}>
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.calcBtnText}>GENERAR CALENDARIO</Text>}
           </TouchableOpacity>
-        </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 }}>
-          {horarios.map(h => (
-            <View key={h} style={styles.chip}>
-              <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{h}</Text>
-              <TouchableOpacity onPress={() => setHorarios(horarios.filter(x => x !== h))}>
-                <Ionicons name="close-circle" size={18} color="#FFF" style={{ marginLeft: 5 }} />
+          {planTomas.length > 0 && (
+            <View style={styles.pizarraContainer}>
+              <Text style={styles.label}>Configuración de Alarmas</Text>
+
+              {/* Selector de alcance */}
+              <View style={styles.selectorContainer}>
+                <TouchableOpacity
+                  style={[styles.optionBtn, generarTodo && styles.optionBtnActive]}
+                  onPress={() => {
+                    setGenerarTodo(true);
+                    calcularPizarra(true); // <--- CAMBIO AQUÍ: Agregamos true
+                  }}
+                >
+                  <Text style={[styles.optionText, generarTodo && styles.optionTextActive]}>Todo el Tratamiento</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionBtn, !generarTodo && styles.optionBtnActive]}
+                  onPress={() => {
+                    setGenerarTodo(false);
+                    calcularPizarra(false); // <--- CAMBIO AQUÍ: Agregamos false
+                  }}
+                >
+                  <Text style={[styles.optionText, !generarTodo && styles.optionTextActive]}>Solo una parte</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.helperText}>
+                {generarTodo
+                  ? "Se han generado todas las tomas hasta el fin del tratamiento. Puedes eliminar horas específicas con la (X)."
+                  : "Se muestra una vista previa parcial. Revisa y ajusta las tomas necesarias."}
+              </Text>
+
+              {/* LISTA ÚNICA DE TOMAS CON BOTÓN DE BORRAR (X) */}
+              <View style={styles.listaTomas}>
+                <Text style={[styles.label, { marginTop: 10, fontSize: 14 }]}>Tomas a programar:</Text>
+                {planTomas.map((t) => (
+                  <View key={t.id} style={styles.tomaRow}>
+                    <View style={styles.rowAlignCenter}>
+                      <Ionicons name="notifications-outline" size={18} color="#4CAF50" />
+                      <Text style={styles.tomaText}>
+                        {" "}
+                        {t.hora.toLocaleString([], {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setPlanTomas(planTomas.filter((x) => x.id !== t.id))}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#FF5252" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+
+              <TouchableOpacity style={styles.saveBtn} onPress={ejecutarGuardado}>
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.saveBtnText}>CONFIRMAR Y GUARDAR {planTomas.length} ALARMAS</Text>
+                )}
               </TouchableOpacity>
             </View>
-          ))}
-        </View>
+          )}
 
-        <TouchableOpacity style={styles.createBtn} onPress={handleCrear} disabled={loading}>
-          <Text style={styles.createBtnText}>{loading ? 'Cargando...' : 'Crear'}</Text>
-        </TouchableOpacity>
+          {/* SECCIÓN: MEDICAMENTOS ASIGNADOS */}
+          <Text style={styles.sectionTitle}>Medicamentos asignados</Text>
 
-        <Text style={styles.sectionTitle}>Medicamentos asignados</Text>
-        {assigned.map(pm => (
-          <View key={pm.id} style={styles.assignedItem}>
-            <Text style={styles.assignedName}>{pm.medicine_name}</Text>
-            <Text style={styles.assignedMeta}>{pm.dose} • {pm.frequency}</Text>
-          </View>
-        ))}
+          {assigned && assigned.length > 0 ? (
+            assigned.map((pm) => (
+              <View key={pm.id} style={styles.assignedItem}>
+                <View style={styles.rowAlignCenter}>
+                  <Ionicons name="medical" size={20} color="#004080" style={{ marginRight: 10 }} />
+                  <View>
+                    <Text style={styles.assignedName}>{pm.medicine_name || 'Sin nombre'}</Text>
+                    <Text style={styles.assignedMeta}>
+                      {pm.dose} • {pm.frequency}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={{ color: '#999', textAlign: 'center', marginTop: 10 }}>
+              No hay medicamentos registrados aún.
+            </Text>
+          )}
 
-        {pickerVisible && <DateTimePicker value={new Date()} mode="date" display="default" onChange={onPickerChange} />}
-      </ScrollView>
+          {showPicker && (
+            <DateTimePicker
+              value={showPicker === 'inicio' ? fechaInicio : showPicker === 'fin' ? fechaFin : horaInicio}
+              mode={showPicker === 'hora' ? 'time' : 'date'}
+              onChange={(e, d) => {
+                setShowPicker(null);
+                if (d) {
+                  if (showPicker === 'inicio') setFechaInicio(d);
+                  else if (showPicker === 'fin') setFechaFin(d);
+                  else setHoraInicio(d);
+                }
+              }}
+            />
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -230,25 +413,70 @@ const styles = StyleSheet.create({
   backButton: { marginRight: 15 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   content: { padding: 20 },
-  patientLabel: { marginBottom: 10, color: '#666', fontSize: 16 },
-  calendarStrip: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  dayItem: { alignItems: 'center', padding: 10, borderRadius: 10 },
-  dayActive: { backgroundColor: '#2196F3' },
-  dayText: { fontSize: 16, color: '#999' },
-  dayLabel: { fontSize: 12, color: '#999' },
-  dayTextActive: { color: '#FFF', fontWeight: 'bold' },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#333' },
-  input: { backgroundColor: '#F0F0F0', borderRadius: 12, padding: 15, marginBottom: 20, fontSize: 16, justifyContent: 'center' },
-  suggestions: { position: 'absolute', top: 55, left: 0, right: 0, backgroundColor: '#FFF', borderRadius: 12, elevation: 5, zIndex: 1000, borderWidth: 1, borderColor: '#EEE' },
-  suggestionItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
-  addBtn: { backgroundColor: '#2196F3', padding: 10, borderRadius: 30, marginLeft: 10, height: 50, width: 50, alignItems: 'center', justifyContent: 'center' },
-  chip: { backgroundColor: '#2196F3', flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 20, marginRight: 8, marginBottom: 8 },
-  createBtn: { backgroundColor: '#2196F3', padding: 18, borderRadius: 30, alignItems: 'center', marginTop: 10 },
-  createBtnText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 25, marginBottom: 15 },
-  assignedItem: { padding: 15, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
-  assignedName: { fontWeight: 'bold', fontSize: 14, color: '#333' },
-  assignedMeta: { fontSize: 12, color: '#666', marginTop: 4 }
+  patientLabel: { color: '#004080', fontWeight: 'bold', marginBottom: 15, fontSize: 16 },
+  label: { fontWeight: 'bold', marginTop: 20, marginBottom: 8, color: '#333', fontSize: 16 },
+  autocompleteContainer: { zIndex: 1000 },
+  input: { backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#E9ECEF' },
+  row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  rowAlignCenter: { flexDirection: 'row', alignItems: 'center' },
+  pickerBox: { flex: 1.2, backgroundColor: '#F8F9FA', borderRadius: 12, borderWidth: 1, borderColor: '#E9ECEF', overflow: 'hidden' },
+  dateBtn: { flex: 1, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E9ECEF' },
+  calcBtn: { backgroundColor: '#004080', padding: 18, borderRadius: 12, marginTop: 25, alignItems: 'center' },
+  calcBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  pizarraContainer: { marginTop: 20, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 15 },
+  tomaRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#DEE2E6', alignItems: 'center' },
+  tomaText: { fontSize: 14, color: '#495057' },
+  saveBtn: { backgroundColor: '#4CAF50', padding: 18, borderRadius: 12, marginTop: 20, alignItems: 'center' },
+  saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  suggestions: { backgroundColor: '#FFF', elevation: 5, borderRadius: 12, marginTop: 5, borderWidth: 1, borderColor: '#EEE' },
+  suggestionItem: { padding: 15, borderBottomWidth: 1, borderColor: '#F1F3F5' },
+  suggestionName: { fontWeight: 'bold', fontSize: 15 },
+  suggestionDetail: { color: '#6C757D', fontSize: 13 },
+  loaderSearch: { position: 'absolute', right: 15, top: 18 },
+  // Estilos para la sección de abajo
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 35, marginBottom: 15, color: '#333' },
+  assignedItem: { padding: 15, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#E9ECEF', elevation: 1 },
+  assignedName: { fontWeight: 'bold', fontSize: 15, color: '#333' },
+  assignedMeta: { fontSize: 13, color: '#666', marginTop: 2 },
+  selectorContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E9ECEF',
+    borderRadius: 10,
+    padding: 4,
+    marginVertical: 10
+  },
+  optionBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8
+  },
+  optionBtnActive: {
+    backgroundColor: '#FFF',
+    elevation: 2
+  },
+  optionText: {
+    color: '#666',
+    fontWeight: '500'
+  },
+  optionTextActive: {
+    color: '#004080',
+    fontWeight: 'bold'
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6C757D',
+    marginBottom: 15,
+    fontStyle: 'italic'
+  },
+  listaTomas: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+  }
 });
 
 export default MedicamentoScreen;

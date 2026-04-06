@@ -1,11 +1,28 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { BackHandler, Alert } from 'react-native';
+import { Tabs, router } from 'expo-router';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
 export default function CuidadorLayout() {
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      Alert.alert(
+        'Cerrar sesión',
+        '¿Deseas salir de la aplicación?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Salir', style: 'destructive', onPress: () => router.replace('/') },
+        ]
+      );
+      return true; // bloquea la navegación por defecto
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <Tabs screenOptions={{ 
       headerShown: false,
-      tabBarActiveTintColor: '#2196F3', // Color azul del mockup
+      tabBarActiveTintColor: '#004080', // Color azul del mockup
       tabBarStyle: { height: 65, paddingBottom: 10 }
     }}>
       <Tabs.Screen

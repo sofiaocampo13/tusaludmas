@@ -1,11 +1,11 @@
 import express from 'express';
 const router = express.Router();
-import { createAlarm, updateAlarmState, getAlarmsByPatient } from '../controllers/alarmController.js';
+import { createAlarm, updateAlarmState, updateAlarm, deleteAlarm, getAlarmsByPatient, snoozeAlarm } from '../controllers/alarmController.js';
 
 router.post('/', createAlarm);
-router.put('/:id', updateAlarmState);
+router.post('/:id/posponer', snoozeAlarm);       // state=3, +10 min
+router.put('/:id', updateAlarm);                  // state=1 tomada, state=2 no tomada
+router.delete('/:id', deleteAlarm);
+router.get('/paciente/:id', getAlarmsByPatient);
 
 export default router;
-
-// otros imports
-router.get('/paciente/:id', getAlarmsByPatient); 

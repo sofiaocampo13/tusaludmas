@@ -33,6 +33,34 @@ export const getCaregiverPatients = (req, res) => {
   });
 };
 
+export const linkPatientToCaregiver = (req, res) => {
+  const { caregiverId } = req.params;
+  const { link_code } = req.body;
+  if (!caregiverId || !link_code) {
+    return res.status(400).json({ success: false, message: 'Faltan datos' });
+  }
+
+  Caregiver.linkPatient(caregiverId, link_code.trim(), (err, result) => {
+    if (err) {
+      console.error('Error DB linkPatient:', err);
+      return res.status(500).json({ success: false, message: 'Error de servidor' });
+    }
+    if (result.notFound) {
+      return res.status(404).json({ success: false, message: 'Código de vinculación no encontrado' });
+    }
+    if (result.notPatient) {
+      return res.status(400).json({ success: false, message: 'El código no corresponde a un paciente' });
+    }
+    if (result.alreadyLinked) {
+      return res.status(409).json({ success: false, message: 'Este paciente ya está a cargo de otro cuidador' });
+    }
+    if (result.alreadyYours) {
+      return res.status(409).json({ success: false, message: 'Este paciente ya está vinculado a tu cuenta' });
+    }
+    return res.json({ success: true, message: 'Paciente vinculado correctamente', patientId: result.patientId });
+  });
+};
+
 export const listMedicinesCatalog = (req, res) => {
   Medicines.listCatalog((err, results) => {
     if (err) {

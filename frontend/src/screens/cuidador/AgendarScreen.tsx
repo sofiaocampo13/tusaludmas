@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
 import type { PatientLinked } from '../../types/database';
 import { createPatientAppointment, getCaregiverPatients, listPatientAppointments } from '../../services/dataService';
 
 type Props = { caregiverId?: number };
 
 const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
+  const router = useRouter();
   const [patient, setPatient] = useState<PatientLinked | null>(null);
   const [cita, setCita] = useState('');
   const [lugar, setLugar] = useState('');
@@ -107,7 +109,9 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="chevron-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => router.navigate('/cuidador')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="chevron-back" size={24} color="#004080" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Agendar Cita</Text>
       </View>
 
@@ -177,7 +181,7 @@ const styles = StyleSheet.create({
   patientLabel: { marginBottom: 10, color: '#666' },
   label: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#333' },
   input: { backgroundColor: '#F0F0F0', borderRadius: 12, padding: 15, marginBottom: 20, fontSize: 16, color: '#000' },
-  createBtn: { backgroundColor: '#2196F3', padding: 18, borderRadius: 30, alignItems: 'center', marginTop: 10 },
+  createBtn: { backgroundColor: '#004080', padding: 18, borderRadius: 30, alignItems: 'center', marginTop: 10 },
   createBtnText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   sectionTitle: { marginTop: 25, marginBottom: 10, fontSize: 16, fontWeight: 'bold', color: '#333' },
   item: { padding: 12, borderRadius: 12, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#EEE', marginBottom: 10 },

@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import bcrypt from 'bcrypt';
 
 const User = {
     // Método para registrar cualquier tipo de usuario (Paciente o Cuidador)
@@ -17,11 +18,23 @@ const User = {
 
     authenticate: (username, password, callback) => {
         const sql = `
-            SELECT u.*, r.name as role_name 
-            FROM users u 
-            JOIN roles r ON u.roles_id = r.id 
-            WHERE (u.username = ? OR u.email = ?) AND u.password = ? AND u.state = 1`;
-        db.query(sql, [username, username, password], callback);
+            SELECT u.*, r.name as role_name
+            FROM users u
+            JOIN roles r ON u.roles_id = r.id
+            WHERE (u.username = ? OR u.email = ?) AND u.state = 1`;
+        db.query(sql, [username, username], async (err, results) => {
+            if (err) return callback(err, []);
+            if (!results.length) return callback(null, []);
+            const user = results[0];
+            let match = false;
+            if (user.password.startsWith('$2b$') || user.password.startsWith('$2a$')) {
+                match = await bcrypt.compare(password, user.password);
+            } else {
+                // Fallback para contraseñas en texto plano (mientras se migran)
+                match = user.password === password;
+            }
+            callback(null, match ? results : []);
+        });
     },
 
     findByCode: (code, callback) => {
@@ -59,9 +72,10 @@ const User = {
 
     getPatientByCaregiver: (caregiverId, callback) => {
         const sql = `
-            SELECT id, first_name, last_name, latitude, longitude, phone 
-            FROM users 
-            WHERE cuidador_id = ?
+            SELECT u.id, u.first_name, u.last_name, u.latitude, u.longitude, u.phone
+            FROM users u
+            JOIN caregiver_patient cp ON cp.patient_id = u.id
+            WHERE cp.caregiver_id = ?
             LIMIT 1`;
         db.query(sql, [caregiverId], callback);
     },

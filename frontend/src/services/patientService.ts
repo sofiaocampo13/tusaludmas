@@ -1,5 +1,3 @@
-// frontend/src/services/patientService.ts
-
 import { API_BASE_URL } from '../config/api';
 const API_URL = API_BASE_URL;
 
@@ -47,5 +45,21 @@ export const getPatientDashboard = async (patientId: number): Promise<DashboardD
   } catch (error) {
     console.error('Error al cargar dashboard del paciente:', error);
     return null;
+  }
+};
+
+/** state: 1 activo, 0 inactivo (p. ej. ya tomada / descartada en servidor) */
+export const updateAlarmState = async (alarmId: number, state: number): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_URL}/alarms/${alarmId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state }),
+    });
+    const json = await response.json();
+    return response.ok && json?.success === true;
+  } catch (e) {
+    console.error('Error al actualizar alarma:', e);
+    return false;
   }
 };
