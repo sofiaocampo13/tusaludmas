@@ -19,7 +19,9 @@ import {
 
 type Toma = { id: string; hora: Date; activa: boolean; };
 
-const MedicamentoScreen: React.FC<{ caregiverId: number }> = ({ caregiverId }) => {
+type Props = { caregiverId?: number };
+
+const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
   const router = useRouter();
   const [patient, setPatient] = useState<PatientLinked | null>(null);
   const [filteredCatalog, setFilteredCatalog] = useState<Medicine[]>([]);
@@ -56,13 +58,22 @@ const MedicamentoScreen: React.FC<{ caregiverId: number }> = ({ caregiverId }) =
   };
 
   useEffect(() => {
-    getCaregiverPatients(caregiverId).then(res => {
-      if (res.success && res.patients.length > 0) {
-        const p = res.patients[0];
+    let mounted = true;
+    (async () => {
+      if (!caregiverId) return;
+      try {
+        const res = await getCaregiverPatients(caregiverId);
+
+        if (!mounted) return;
+
+        const p = res.patients?.[0] ?? null;
         setPatient(p);
-        reloadAssigned(p.id); // Cargar lista al entrar
+        if (p) await reloadAssigned(p.id); // Cargar lista al entrar
+      } catch (e: any) {
+        Alert.alert('Error', e?.message || 'No se pudieron cargar los pacientes');
       }
-    });
+    })();
+    return () => { mounted = false; };
   }, [caregiverId]);
 
   const validarDosis = (valor: string, unidad: string): boolean => {

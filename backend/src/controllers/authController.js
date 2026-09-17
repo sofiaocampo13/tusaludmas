@@ -1,5 +1,6 @@
 import User from '../models/user.js';
-import bcrypt from 'bcrypt'; 
+import bcrypt from 'bcrypt';
+import { calculateAge, isAdult, LEGAL_AGE } from '../utils/age.js';
 
 // LOGIN ESTÁNDAR
 export const login = (req, res) => {
@@ -84,6 +85,21 @@ export const register = async (req, res) => {
         return res.status(400).json({ success: false, message: "Faltan campos obligatorios" });
     }
 
+    // Mayoría de edad según la fecha actual de Colombia (aplica a paciente y cuidador)
+    const age = calculateAge(birth_date);
+    if (age === null) {
+        return res.status(400).json({ success: false, message: "La fecha de nacimiento no es válida" });
+    }
+    if (age < 0) {
+        return res.status(400).json({ success: false, message: "La fecha de nacimiento no puede ser futura" });
+    }
+    if (!isAdult(birth_date)) {
+        return res.status(400).json({
+            success: false,
+            message: `Debes ser mayor de edad (${LEGAL_AGE} años cumplidos) para registrarte.`
+        });
+    }
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const roles_id = roleType === 'cuidador' ? 3 : 2;
@@ -121,21 +137,30 @@ export const register = async (req, res) => {
 };
 
 export const updateUser = (req, res) => {
-    const { id } = req.params; // Obtenemos el ID de la URL
+    const { id } = req.params;
     const userData = req.body;
 
-    User.update(id, userData, (err, result) => {
-        if (err) {
-            console.error('Error al actualizar:', err);
-            return res.status(500).json({ success: false, message: 'Error al actualizar datos' });
-        }
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-        }
+    if (!userData || Object.keys(userData).length === 0) {
+        return res.status(400).json({ success: false, message: 'No se recibieron datos para actualizar' });
+    }
 
-        res.json({ success: true, message: 'Datos actualizados correctamente' });
-    });
+    try {
+        User.update(id, userData, (err, result) => {
+            if (err) {
+                console.error('Error al actualizar:', err);
+                return res.status(500).json({ success: false, message: 'Error al actualizar datos: ' + err.message });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+            }
+
+            res.json({ success: true, message: 'Datos actualizados correctamente' });
+        });
+    } catch (error) {
+        console.error('Error inesperado en updateUser:', error);
+        res.status(500).json({ success: false, message: 'Error inesperado: ' + error.message });
+    }
 };
 export const updateUserState = (req, res) => {
     const { id } = req.params;

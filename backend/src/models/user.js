@@ -56,8 +56,8 @@ const User = {
     // LISTA TODOS LOS USUARIOS CON SU ROL
     findAll: (callback) => {
         const sql = `
-            SELECT u.id, u.username, u.email, u.state, r.name as role_name 
-            FROM users u 
+            SELECT u.id, u.username, u.first_name, u.last_name, u.email, u.phone, u.state, u.roles_id, r.name as role_name
+            FROM users u
             JOIN roles r ON u.roles_id = r.id`;
         db.query(sql, callback);
     },

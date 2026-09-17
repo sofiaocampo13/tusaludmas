@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ENDPOINTS } from '../../src/config/api';
 import { TERMINOS_TEXTO, POLITICA_TEXTO } from '../../src/constants/legalContent';
+import { isAdult, getMaxBirthDateForAdult, LEGAL_AGE } from '../../src/utils/age';
 
 // ─── Componente visor de documentos legales ────────────────────────────────────
 
@@ -50,6 +51,14 @@ const modalStyles = StyleSheet.create({
 
 // ─── Pantalla de registro ───────────────────────────────────────────────────────
 
+// Formatea como YYYY-MM-DD en hora local: toISOString() pasa a UTC y en zonas
+// con offset negativo devuelve el día anterior.
+const toLocalDateString = (date: Date) => {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -81,6 +90,13 @@ export default function RegisterPage() {
       Alert.alert("Error", "Por favor completa todos los campos.");
       return;
     }
+    if (!isAdult(birthDate)) {
+      Alert.alert(
+        "Error",
+        `Debes ser mayor de edad (${LEGAL_AGE} años cumplidos) para registrarte.`
+      );
+      return;
+    }
     if (!passwordRules.every(r => r.ok)) {
       Alert.alert("Error", "La contraseña no cumple todos los requisitos.");
       return;
@@ -101,7 +117,7 @@ export default function RegisterPage() {
           email,
           password,
           phone,
-          birth_date: birthDate ? birthDate.toISOString().split('T')[0] : '',
+          birth_date: birthDate ? toLocalDateString(birthDate) : '',
           roleType,
         }),
       });
@@ -218,7 +234,8 @@ export default function RegisterPage() {
               <DateTimePicker
                 value={birthDate ?? new Date(2000, 0, 1)}
                 mode="date"
-                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+                maximumDate={getMaxBirthDateForAdult()}
                 onChange={(_, date) => {
                   setShowPicker(false);
                   if (date) setBirthDate(date);

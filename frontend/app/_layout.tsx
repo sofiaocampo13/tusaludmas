@@ -52,7 +52,7 @@ export default function RootLayout() {
           : 'Según indicación';
 
       if (action === 'tomado') {
-        if (alarmId != null) await updateAlarmState(alarmId, 0);
+        if (alarmId != null) await updateAlarmState(alarmId, 1);
         return;
       }
       if (action === 'posponer') {

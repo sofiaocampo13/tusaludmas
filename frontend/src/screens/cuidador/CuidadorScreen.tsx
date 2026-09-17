@@ -5,7 +5,7 @@ import {
   ActivityIndicator, Linking, Alert, Modal
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { API_BASE_URL } from '../../config/api';
@@ -76,6 +76,10 @@ export interface CuidadorScreenProps {
 
 export default function CuidadorScreen({ user, patient = null }: CuidadorScreenProps) {
   const userName = getDisplayName(user);
+
+  // El Modal cubre toda la pantalla, incluida la barra del sistema: el bottom
+  // sheet necesita separarse de ella por su cuenta.
+  const insets = useSafeAreaInsets();
 
   const [pacienteInfo, setPacienteInfo]       = useState<any>(null);
   const [loadingMap, setLoadingMap]           = useState(true);
@@ -212,7 +216,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>TUSALUD+</Text>
@@ -357,7 +361,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
           onPress={() => setMenuNotif(null)}
           activeOpacity={1}
         />
-        <View style={styles.bottomSheet}>
+        <View style={[styles.bottomSheet, { paddingBottom: 20 + insets.bottom }]}>
           <View style={styles.bottomSheetHandle} />
           <Text style={styles.bottomSheetTitle} numberOfLines={2}>{menuNotif?.title}</Text>
           <Text style={styles.bottomSheetTime}>
@@ -474,7 +478,8 @@ const styles = StyleSheet.create({
 
   // Bottom sheet
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 34 },
+  // paddingBottom se calcula en línea sumando el inset inferior del dispositivo.
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   bottomSheetHandle: { width: 40, height: 4, backgroundColor: '#DDD', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   bottomSheetTitle: { fontWeight: 'bold', fontSize: 15, color: '#333', marginBottom: 4 },
   bottomSheetTime: { color: '#004080', fontSize: 13, marginBottom: 16 },

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, Alert, Modal, ActivityIndicator, Share, Image,
 } from 'react-native';
-import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView as RNSafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -60,6 +60,12 @@ type Props = { caregiverId?: number };
 
 const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
   const router = useRouter();
+
+  // Los Modal cubren toda la pantalla, incluida la barra del sistema: los bottom
+  // sheets necesitan separarse de ella por su cuenta.
+  const insets = useSafeAreaInsets();
+  const sheetStyle = [styles.bottomSheet, { paddingBottom: 20 + insets.bottom }];
+
   const [caregiver, setCaregiver] = useState<User | null>(null);
   const [patients, setPatients] = useState<PatientLinked[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +246,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <RNSafeAreaView style={styles.container}>
+    <RNSafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.navigate('/cuidador')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color="#004080" />
@@ -400,7 +406,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
       {/* ── Modal editar perfil ────────────────────────────────────────── */}
       <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={() => setEditVisible(false)} activeOpacity={1} />
-        <View style={styles.bottomSheet}>
+        <View style={sheetStyle}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>Editar Perfil</Text>
 
@@ -432,7 +438,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
       {/* ── Modal reporte ─────────────────────────────────────────────── */}
       <Modal visible={reporteVisible} transparent animationType="slide" onRequestClose={() => setReporteVisible(false)}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={() => setReporteVisible(false)} activeOpacity={1} />
-        <View style={styles.bottomSheet}>
+        <View style={sheetStyle}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>Reportar Inconveniente</Text>
           <Text style={styles.sheetSubtitle}>
@@ -489,7 +495,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
       {/* ── Modal vincular paciente ────────────────────────────────────── */}
       <Modal visible={linkVisible} transparent animationType="slide" onRequestClose={() => setLinkVisible(false)}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={() => setLinkVisible(false)} activeOpacity={1} />
-        <View style={styles.bottomSheet}>
+        <View style={sheetStyle}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>Agregar Paciente</Text>
           <Text style={styles.sheetSubtitle}>
@@ -610,10 +616,11 @@ const styles = StyleSheet.create({
 
   // Modal
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  // paddingBottom se calcula en línea sumando el inset inferior del dispositivo.
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingBottom: 34,
+    padding: 20,
   },
   sheetHandle: { width: 40, height: 4, backgroundColor: '#DDD', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontSize: 17, fontWeight: 'bold', color: '#333', marginBottom: 6 },

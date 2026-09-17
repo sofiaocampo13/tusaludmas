@@ -9,8 +9,9 @@ export async function getCaregiverPatients(caregiverId: number) {
   return apiGet<{ success: boolean; patients: PatientLinked[] }>(`/caregivers/${caregiverId}/patients`);
 }
 
-export async function searchMedicines(term: string) {
-  return apiGet<Medicine[]>(`/medicines/search?term=${encodeURIComponent(term)}`);
+export async function searchMedicines(term: string): Promise<Medicine[]> {
+  const res = await apiGet<{ success: boolean; medicines: Medicine[] }>(`/medicines/search?term=${encodeURIComponent(term)}`);
+  return res.medicines || [];
 }
 
 export async function createPatientMedicine(patientId: number, payload: any) {
@@ -64,7 +65,7 @@ export async function eliminarAlarma(alarmId: number) {
 }
 
 export async function getClinics() {
-  return apiGet<{ success: boolean; clinics: { id: number; name: string; address: string }[] }>('/external/clinics');
+  return apiGet<{ success: boolean; clinics: { id: number; name: string; address: string }[] }>('/external/catalog');
 }
 
 export async function linkPatientToCaregiver(caregiverId: number, link_code: string) {

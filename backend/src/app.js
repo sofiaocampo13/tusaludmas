@@ -33,4 +33,10 @@ app.get('/api/saludo', (req, res) => {
   res.json({ mensaje: "Conexión exitosa desde el Backend de Node.js" });
 });
 
+// Manejo global de errores - siempre devuelve JSON
+app.use((err, req, res, next) => {
+  console.error('Error no controlado:', err.stack);
+  res.status(500).json({ success: false, message: 'Error interno del servidor: ' + err.message });
+});
+
 export default app;

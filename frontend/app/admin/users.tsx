@@ -47,15 +47,6 @@ export default function UsersScreen() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleEdit = (item: UserData) => {
-    // Enviamos el objeto 'item' completo como parámetro para que la pantalla 
-    // de edición reciba los datos reales y no datos genéricos.
-    router.push({
-      pathname: '/admin/edit-user' as any,
-      params: { user: JSON.stringify(item) }
-    });
-  };
-
   const handleSuspend = (item: UserData) => {
     const targetState = item.state === 1 ? 0 : 1;
     const actionLabel = targetState === 0 ? "suspender" : "activar";
@@ -129,16 +120,8 @@ export default function UsersScreen() {
 
         {expandedId === item.id && (
           <View style={styles.expandedMenu}>
-            <TouchableOpacity 
-              style={styles.menuOption} 
-              onPress={() => handleEdit(item)}
-            >
-              <Ionicons name="create-outline" size={18} color={AZUL_CORRECTO} />
-              <Text style={[styles.menuOptionText, { color: AZUL_CORRECTO }]}>Editar Datos</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.menuOption} 
+            <TouchableOpacity
+              style={styles.menuOption}
               onPress={() => handleSuspend(item)}
             >
               <Ionicons name={item.state === 1 ? "ban-outline" : "checkmark-circle-outline"} size={18} color={item.state === 1 ? "#E74C3C" : "#27AE60"} />

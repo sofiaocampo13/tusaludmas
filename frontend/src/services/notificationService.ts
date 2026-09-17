@@ -97,7 +97,7 @@ export async function syncServerMedicationAlarms(alarms: Alarm[]): Promise<void>
 
   const now = Date.now();
   for (const a of alarms) {
-    if (a.patient_medicine_id == null || a.state !== 1) continue;
+    if (a.patient_medicine_id == null || a.state !== 0) continue;
     const when = new Date(a.alarm_datetime).getTime();
     if (when <= now) continue;
 
