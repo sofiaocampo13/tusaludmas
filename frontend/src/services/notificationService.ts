@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
 import type { Alarm } from './patientService';
+import { dbTime } from '../utils/datetime';
 
 const ANDROID_CHANNEL_ID = 'medicamentos';
 
@@ -98,7 +99,7 @@ export async function syncServerMedicationAlarms(alarms: Alarm[]): Promise<void>
   const now = Date.now();
   for (const a of alarms) {
     if (a.patient_medicine_id == null || a.state !== 0) continue;
-    const when = new Date(a.alarm_datetime).getTime();
+    const when = dbTime(a.alarm_datetime);
     if (when <= now) continue;
 
     const title = `¡Hora de tu medicina: ${a.title}!`;

@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getAllReportsProvider, updateReporteEstadoProvider, ReportsData } from '../../src/services/adminService';
+import { parseDbDateTime } from '../../src/utils/datetime';
 
 const ESTADO_LABELS: Record<number, string> = {
     0: 'Pendiente',
@@ -76,9 +77,9 @@ export default function ReportsScreen() {
 
     const renderItem = ({ item }: { item: ReportsData }) => {
         const cuidadorName = [item.first_name, item.last_name].filter(Boolean).join(' ') || item.username || `#${item.caregiver_id}`;
-        const fecha = new Date(item.created_at).toLocaleDateString('es-CO', {
+        const fecha = parseDbDateTime(item.created_at)?.toLocaleDateString('es-CO', {
             day: '2-digit', month: 'short', year: 'numeric',
-        });
+        }) ?? item.created_at;
         const iconName = (CATEGORIA_ICONS[item.categoria] || 'flag-outline') as any;
         const estadoColor = ESTADO_COLORS[item.estado] ?? '#999';
         const estadoLabel = ESTADO_LABELS[item.estado] ?? 'Desconocido';

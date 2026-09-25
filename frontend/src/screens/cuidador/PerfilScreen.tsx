@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   legalRowText: { flex: 1, fontSize: 14, color: '#333' },
 
   // Modal
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.4)' },
   // paddingBottom se calcula en línea sumando el inset inferior del dispositivo.
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
