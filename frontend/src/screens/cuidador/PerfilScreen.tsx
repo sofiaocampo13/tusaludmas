@@ -411,19 +411,19 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
           <Text style={styles.sheetTitle}>Editar Perfil</Text>
 
           <Text style={styles.fieldLabel}>Nombre *</Text>
-          <TextInput style={styles.input} value={editFirst} onChangeText={setEditFirst}
+          <TextInput placeholderTextColor="#9CA3AF" style={styles.input} value={editFirst} onChangeText={setEditFirst}
             placeholder="Nombre" autoCapitalize="words" />
 
           <Text style={styles.fieldLabel}>Apellido</Text>
-          <TextInput style={styles.input} value={editLast} onChangeText={setEditLast}
+          <TextInput placeholderTextColor="#9CA3AF" style={styles.input} value={editLast} onChangeText={setEditLast}
             placeholder="Apellido" autoCapitalize="words" />
 
           <Text style={styles.fieldLabel}>Correo electrónico *</Text>
-          <TextInput style={styles.input} value={editEmail} onChangeText={setEditEmail}
+          <TextInput placeholderTextColor="#9CA3AF" style={styles.input} value={editEmail} onChangeText={setEditEmail}
             placeholder="correo@ejemplo.com" keyboardType="email-address" autoCapitalize="none" />
 
           <Text style={styles.fieldLabel}>Teléfono</Text>
-          <TextInput style={styles.input} value={editPhone} onChangeText={setEditPhone}
+          <TextInput placeholderTextColor="#9CA3AF" style={styles.input} value={editPhone} onChangeText={setEditPhone}
             placeholder="Número de teléfono" keyboardType="phone-pad" />
 
           <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
@@ -461,7 +461,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
           </View>
 
           <Text style={styles.fieldLabel}>Título *</Text>
-          <TextInput
+          <TextInput placeholderTextColor="#9CA3AF"
             style={styles.input}
             value={reporteTitulo}
             onChangeText={setReporteTitulo}
@@ -470,7 +470,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
           />
 
           <Text style={styles.fieldLabel}>Descripción *</Text>
-          <TextInput
+          <TextInput placeholderTextColor="#9CA3AF"
             style={[styles.input, styles.textArea]}
             value={reporteDescripcion}
             onChangeText={setReporteDescripcion}
@@ -503,7 +503,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
           </Text>
 
           <Text style={styles.fieldLabel}>Código de vinculación</Text>
-          <TextInput
+          <TextInput placeholderTextColor="#9CA3AF"
             style={[styles.input, styles.codeInput]}
             value={linkCode}
             onChangeText={setLinkCode}
@@ -629,6 +629,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F8F9FA', borderRadius: 10, padding: 13,
     borderWidth: 1, borderColor: '#E9ECEF', marginBottom: 14, fontSize: 15,
+    color: '#1a1a1a',
   },
   codeInput: { fontSize: 18, fontWeight: 'bold', letterSpacing: 2, textAlign: 'center' },
   saveBtn: {

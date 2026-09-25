@@ -40,17 +40,17 @@ export default function EpsPanel() {
 
                 {tab === 'medico' ? (
                     <View>
-                        <TextInput placeholder="Nombres" style={styles.in} onChangeText={t => setForm({...form, fname: t})} />
-                        <TextInput placeholder="Apellidos" style={styles.in} onChangeText={t => setForm({...form, lname: t})} />
-                        <TextInput placeholder="Correo" style={styles.in} onChangeText={t => setForm({...form, email: t})} />
-                        <TextInput placeholder="Password" style={styles.in} secureTextEntry onChangeText={t => setForm({...form, pass: t})} />
-                        <TextInput placeholder="Nombre de Clínica (Ya debe existir)" style={styles.in} onChangeText={t => setForm({...form, clinica: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Nombres" style={styles.in} onChangeText={t => setForm({...form, fname: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Apellidos" style={styles.in} onChangeText={t => setForm({...form, lname: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Correo" style={styles.in} onChangeText={t => setForm({...form, email: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Password" style={styles.in} secureTextEntry onChangeText={t => setForm({...form, pass: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Nombre de Clínica (Ya debe existir)" style={styles.in} onChangeText={t => setForm({...form, clinica: t})} />
                         <TouchableOpacity style={styles.btn} onPress={() => handleAction('doctor')}><Text style={styles.whiteText}>Registrar Médico</Text></TouchableOpacity>
                     </View>
                 ) : (
                     <View>
-                        <TextInput placeholder="Nombre de la Clínica" style={styles.in} onChangeText={t => setForm({...form, c_name: t})} />
-                        <TextInput placeholder="Dirección" style={styles.in} onChangeText={t => setForm({...form, c_addr: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Nombre de la Clínica" style={styles.in} onChangeText={t => setForm({...form, c_name: t})} />
+                        <TextInput placeholderTextColor="#9CA3AF" placeholder="Dirección" style={styles.in} onChangeText={t => setForm({...form, c_addr: t})} />
                         <TouchableOpacity style={[styles.btn, {backgroundColor: '#28a745'}]} onPress={() => handleAction('clinic')}><Text style={styles.whiteText}>Crear Clínica Nueva</Text></TouchableOpacity>
                     </View>
                 )}
@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
     activeTab: { backgroundColor: '#007bff' },
     whiteText: { color: 'white', fontWeight: 'bold' },
     blueText: { color: '#007bff', fontWeight: 'bold' },
-    in: { borderBottomWidth: 1, borderBottomColor: '#ccc', marginBottom: 15, padding: 8 },
+    in: { borderBottomWidth: 1, borderBottomColor: '#ccc', marginBottom: 15, padding: 8, color: '#1a1a1a' },
     btn: { backgroundColor: '#007bff', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 }
 });

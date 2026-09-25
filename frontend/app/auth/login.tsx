@@ -57,7 +57,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
         <Text style={styles.title}>Vinculación entre cuentas</Text>
         <Text style={styles.subtitle}>Inserte el código de vinculación con el cuidador.</Text>
-        <TextInput
+        <TextInput placeholderTextColor="#9CA3AF"
           style={styles.codeInput}
           placeholder="A B C 6"
           maxLength={6}
@@ -76,7 +76,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>TuSalud App</Text>
-        <TextInput
+        <TextInput placeholderTextColor="#9CA3AF"
           style={styles.input}
           placeholder="Correo electrónico / Usuario"
           value={identifier}
@@ -84,7 +84,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
         />
         <View style={styles.passwordContainer}>
-          <TextInput
+          <TextInput placeholderTextColor="#9CA3AF"
             style={styles.passwordInput}
             placeholder="Contraseña"
             value={password}
@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 30, justifyContent: 'center', backgroundColor: '#fff' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
   subtitle: { textAlign: 'center', color: '#666', marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, marginBottom: 10 },
-  codeInput: { borderBottomWidth: 2, fontSize: 30, textAlign: 'center', letterSpacing: 10, marginVertical: 30 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, marginBottom: 10, color: '#1a1a1a' },
+  codeInput: { borderBottomWidth: 2, fontSize: 30, textAlign: 'center', letterSpacing: 10, marginVertical: 30, color: '#1a1a1a' },
   buttonMain: { backgroundColor: '#004080', padding: 15, borderRadius: 5, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: 'bold' },
   buttonSecondary: { borderWidth: 1, padding: 10, borderRadius: 5, alignItems: 'center', marginTop: 10 },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   smallText: { textAlign: 'center', color: '#888' },
   backButton: { position: 'absolute', top: 50, left: 20 },
   passwordContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 10 },
-  passwordInput: { flex: 1, padding: 12 },
+  passwordInput: { flex: 1, padding: 12, color: '#1a1a1a' },
   eyeButton: { paddingHorizontal: 12 },
   patientButton: { backgroundColor: '#f0f0f0', padding: 20, marginTop: 30, borderWidth: 2, borderColor: '#004080' },
   patientButtonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#004080' },forgotPasswordContainer: {

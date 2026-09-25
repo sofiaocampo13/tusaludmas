@@ -40,7 +40,7 @@ export default function ForgotPasswordScreen() {
         Introduce tu correo electrónico y te enviaremos los pasos para recuperar tu acceso.
       </Text>
 
-      <TextInput
+      <TextInput placeholderTextColor="#9CA3AF"
         style={styles.input}
         placeholder="correo@ejemplo.com"
         value={email}
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   backButton: { position: 'absolute', top: 50, left: 20 },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 10, color: '#004080' },
   subtitle: { textAlign: 'center', color: '#666', marginBottom: 30, lineHeight: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 15, borderRadius: 8, marginBottom: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 15, borderRadius: 8, marginBottom: 20, color: '#1a1a1a' },
   buttonMain: { backgroundColor: '#004080', padding: 18, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
