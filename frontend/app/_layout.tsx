@@ -4,8 +4,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 
-// Las notificaciones remotas no están disponibles en Expo Go SDK 53+.
-// Solo usamos notificaciones locales, así que suprimimos este aviso.
+// La app solo usa notificaciones locales, nunca push remoto.
+// Este aviso solo aparece en Expo Go, donde expo-notifications no funciona:
+// hay que probar con un development build (ver eas.json).
 LogBox.ignoreLogs(['expo-notifications: Android Push']);
 import { updateAlarmState } from '../src/services/patientService';
 import {

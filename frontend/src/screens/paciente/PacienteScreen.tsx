@@ -11,23 +11,21 @@ import {
   scheduleMedicationAlarm,
   syncServerMedicationAlarms,
 } from '../../services/notificationService';
+import {
+  dbDateOnly,
+  dbTime,
+  formatDbDate,
+  formatDiaCorto,
+  formatFechaHora,
+  formatHora,
+  parseDbDateTime,
+} from '../../utils/datetime';
 
 // ── Helpers de formato ──────────────────────────────────────────────────────
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-
-const formatearHora = (fechaStr: string) =>
-  new Date(fechaStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-const formatearDiaCorto = (fechaStr: string) => {
-  const d = new Date(fechaStr);
-  return `${d.getDate()} ${MESES[d.getMonth()]}`;
-};
-
-const formatearFechaHora = (fechaStr: string) => {
-  const d = new Date(fechaStr);
-  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  return `${dias[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()} · ${formatearHora(fechaStr)}`;
-};
+// El backend envía "YYYY-MM-DD HH:mm:ss" como hora de pared, sin zona horaria.
+const formatearHora = formatHora;
+const formatearDiaCorto = formatDiaCorto;
+const formatearFechaHora = formatFechaHora;
 
 const nombreMed = (title: string) => title.replace(/^Toma:\s*/i, '');
 
@@ -40,15 +38,10 @@ const saludo = () => {
 
 // ── Agrupación de medicamentos vigentes ────────────────────────────────────
 // Usa comparación de string YYYY-MM-DD para evitar problemas de zona horaria
-const fechaStr = (dt: string) => dt.slice(0, 10); // "2026-04-09"
+const fechaStr = dbDateOnly; // "2026-04-09"
 
 // Construye "YYYY-MM-DD" desde un Date en hora local, sin depender de toLocaleDateString
-const localDateStr = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+const localDateStr = formatDbDate;
 
 interface GrupoMed {
   key: string;
@@ -64,7 +57,7 @@ const agruparVigentes = (alarms: Alarm[], todayStr: string): GrupoMed[] => {
 
   const vigentes = alarms
     .filter((a) => a.patient_medicine_id != null && a.state === 0 && fechaStr(a.alarm_datetime) >= todayStr)
-    .sort((a, b) => new Date(a.alarm_datetime).getTime() - new Date(b.alarm_datetime).getTime());
+    .sort((a, b) => dbTime(a.alarm_datetime) - dbTime(b.alarm_datetime));
 
   for (const a of vigentes) {
     const hora = formatearHora(a.alarm_datetime);
@@ -127,14 +120,14 @@ export default function PacienteScreen({ user }: any) {
         const hoyStr = localDateStr(ahora);
 
         const alarmasHoy = data.alarms.filter(
-          (a) => a.patient_medicine_id != null && a.state === 0 && a.alarm_datetime.slice(0, 10) === hoyStr
+          (a) => a.patient_medicine_id != null && a.state === 0 && fechaStr(a.alarm_datetime) === hoyStr
         );
         const pasadasHoy = alarmasHoy
-          .filter((a) => new Date(a.alarm_datetime) <= ahora)
-          .sort((a, b) => new Date(b.alarm_datetime).getTime() - new Date(a.alarm_datetime).getTime());
+          .filter((a) => dbTime(a.alarm_datetime) <= ahora.getTime())
+          .sort((a, b) => dbTime(b.alarm_datetime) - dbTime(a.alarm_datetime));
         const proximasHoy = alarmasHoy
-          .filter((a) => new Date(a.alarm_datetime) > ahora)
-          .sort((a, b) => new Date(a.alarm_datetime).getTime() - new Date(b.alarm_datetime).getTime());
+          .filter((a) => dbTime(a.alarm_datetime) > ahora.getTime())
+          .sort((a, b) => dbTime(a.alarm_datetime) - dbTime(b.alarm_datetime));
         setAlarmaFlash(pasadasHoy[0] ?? proximasHoy[0] ?? null);
 
         const medKey = data.alarms
@@ -243,15 +236,15 @@ export default function PacienteScreen({ user }: any) {
 
   const medPasadas = alarmas
     .filter((a) => a.patient_medicine_id != null && a.state === 0 && fechaStr(a.alarm_datetime) < todayStr)
-    .sort((a, b) => new Date(b.alarm_datetime).getTime() - new Date(a.alarm_datetime).getTime());
+    .sort((a, b) => dbTime(b.alarm_datetime) - dbTime(a.alarm_datetime));
 
   const citasPendientes = citas
-    .filter((c) => new Date(c.appointment_datetime) > ahora)
-    .sort((a, b) => new Date(a.appointment_datetime).getTime() - new Date(b.appointment_datetime).getTime());
+    .filter((c) => dbTime(c.appointment_datetime) > ahora.getTime())
+    .sort((a, b) => dbTime(a.appointment_datetime) - dbTime(b.appointment_datetime));
 
   const citasAsistidas = citas
-    .filter((c) => new Date(c.appointment_datetime) <= ahora)
-    .sort((a, b) => new Date(b.appointment_datetime).getTime() - new Date(a.appointment_datetime).getTime());
+    .filter((c) => dbTime(c.appointment_datetime) <= ahora.getTime())
+    .sort((a, b) => dbTime(b.appointment_datetime) - dbTime(a.appointment_datetime));
 
   const displayUser = {
     fullName: user?.fullName || 'Paciente',
@@ -296,7 +289,7 @@ export default function PacienteScreen({ user }: any) {
 
               {/* Alarma de medicamento vencida hoy */}
               {alarmaFlash && (() => {
-                const esPasada = new Date(alarmaFlash.alarm_datetime) <= new Date();
+                const esPasada = dbTime(alarmaFlash.alarm_datetime) <= Date.now();
                 return (
                   <View style={[styles.card, esPasada ? styles.flashCardRojo : styles.flashCardNaranja]}>
                     <Ionicons name={esPasada ? 'notifications' : 'alarm-outline'} size={24} color="#FFF" />

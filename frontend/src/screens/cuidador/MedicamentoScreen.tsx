@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import type { Medicine, PatientLinked } from '../../types/database';
+import { formatDbDate, formatDbDateTime } from '../../utils/datetime';
 import {
   getCaregiverPatients,
   createPatientMedicine,
@@ -167,28 +168,6 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
     setPlanTomas(nuevas);
   };
 
-  const formatearFechaLocal = (date: Date) => {
-  // Usamos Intl.DateTimeFormat para obtener las partes de la fecha en la zona horaria específica
-  const opciones: Intl.DateTimeFormatOptions = {
-    timeZone: 'America/Bogota',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  };
-
-  const formatter = new Intl.DateTimeFormat('en-CA', opciones); // 'en-CA' genera formato YYYY-MM-DD
-  const partes = formatter.formatToParts(date);
-
-  // Extraemos los valores de las partes para armar el string final
-  const mapping = Object.fromEntries(partes.map(p => [p.type, p.value]));
-
-  return `${mapping.year}-${mapping.month}-${mapping.day} ${mapping.hour}:${mapping.minute}:${mapping.second}`;
-};
-
   const ejecutarGuardado = async () => {
     if (!patient || !selectedMed) return;
     setLoading(true);
@@ -197,8 +176,8 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
         medicine_id: selectedMed.id,
         dose: `${dosisValor} ${dosisUnidad}`,
         frequency: `Cada ${frecuenciaValor} ${frecuenciaTipo}`,
-        start_date: fechaInicio.toISOString().split('T')[0],
-        end_date: fechaFin.toISOString().split('T')[0]
+        start_date: formatDbDate(fechaInicio),
+        end_date: formatDbDate(fechaFin)
       });
 
       if (resPM.success) {
@@ -208,7 +187,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
           : planTomas.slice(0, 5); // Por ejemplo, solo las primeras 5 si elige "una parte"
 
         for (const toma of tomasAProcesar) {
-          const mysqlDateTime = formatearFechaLocal(toma.hora);
+          const mysqlDateTime = formatDbDateTime(toma.hora);
           await createAlarm({
             users_id: patient.id,
             patient_medicine_id: resPM.id,

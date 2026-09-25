@@ -11,6 +11,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { API_BASE_URL } from '../../config/api';
 import { listPatientAlarmas, omitirAlarma, editarAlarma, eliminarAlarma } from '../../services/dataService';
 import type { CuidadorUser, PatientLinked, NotificacionEmergente } from '../../types/database';
+import { dbDateOnly, formatDbDateTime, formatHora, parseDbDateTime } from '../../utils/datetime';
 
 // ─── Helpers de fecha (local, sin conversión UTC) ───────────────────────────
 
@@ -23,17 +24,14 @@ function todayString(): string {
   return localDateString(new Date());
 }
 
+// El backend envía "YYYY-MM-DD HH:mm:ss" como hora de pared, sin zona horaria:
+// basta con leer sus componentes, sin convertir nada.
 function alarmToLocalDateString(alarm_datetime: string): string {
-  return localDateString(new Date(alarm_datetime.replace(' ', 'T')));
+  return dbDateOnly(alarm_datetime);
 }
 
 function formatAlarmTime(alarm_datetime: string): string {
-  try {
-    const d = new Date(alarm_datetime.replace(' ', 'T'));
-    return d.toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit' });
-  } catch {
-    return alarm_datetime;
-  }
+  return formatHora(alarm_datetime);
 }
 
 function getDisplayName(user: {
@@ -102,7 +100,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
   // ── Derivados ────────────────────────────────────────────────────────────
   const weekDays      = generateWeekDays(weekOffset);
   const alarmasDia    = todasLasAlarmas.filter(n => alarmToLocalDateString(n.alarm_datetime) === selectedDate);
-  const isPastAlarm   = menuNotif ? new Date(menuNotif.alarm_datetime.replace(' ', 'T')) < new Date() : false;
+  const isPastAlarm   = menuNotif ? (parseDbDateTime(menuNotif.alarm_datetime) ?? new Date()) < new Date() : false;
 
   const firstDayOfWeek = (() => {
     const d = new Date();
@@ -319,7 +317,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
           ) : pacienteInfo?.latitude ? (
             <MapView
               provider={PROVIDER_GOOGLE}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               region={{
                 latitude: parseFloat(pacienteInfo.latitude),
                 longitude: parseFloat(pacienteInfo.longitude),
@@ -402,17 +400,15 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
       {/* ── DateTimePicker para editar hora ────────────────────────────── */}
       {showEditPicker && alarmEditando && (
         <DateTimePicker
-          value={new Date(alarmEditando.alarm_datetime.replace(' ', 'T'))}
+          value={parseDbDateTime(alarmEditando.alarm_datetime) ?? new Date()}
           mode="time"
-          is24Hour={true}
           onChange={async (e, newDate) => {
             setShowEditPicker(false);
             if (e.type === 'dismissed' || !newDate) return;
 
-            const base = new Date(alarmEditando.alarm_datetime.replace(' ', 'T'));
+            const base = parseDbDateTime(alarmEditando.alarm_datetime) ?? new Date();
             base.setHours(newDate.getHours(), newDate.getMinutes(), 0, 0);
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            const nuevaFecha = `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())} ${pad(base.getHours())}:${pad(base.getMinutes())}:00`;
+            const nuevaFecha = formatDbDateTime(base);
 
             try {
               await editarAlarma(alarmEditando.id, nuevaFecha);
@@ -477,7 +473,7 @@ const styles = StyleSheet.create({
   markerWrapper: { backgroundColor: 'white', borderRadius: 20, padding: 2, elevation: 5 },
 
   // Bottom sheet
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.4)' },
   // paddingBottom se calcula en línea sumando el inset inferior del dispositivo.
   bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   bottomSheetHandle: { width: 40, height: 4, backgroundColor: '#DDD', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
