@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View, Text, StyleSheet, FlatList, SafeAreaView,
-    TouchableOpacity, ActivityIndicator, Alert, RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getAllReportsProvider, updateReporteEstadoProvider, ReportsData } from '../../src/services/adminService';
@@ -29,6 +27,7 @@ const CATEGORIA_ICONS: Record<string, string> = {
 
 export default function ReportsScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [reports, setReports] = useState<ReportsData[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -135,8 +134,8 @@ export default function ReportsScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+            <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
                 <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <Ionicons name="chevron-back" size={28} color="#333" />
                 </TouchableOpacity>
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F6FA' },
     header: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: 20, paddingVertical: 16, backgroundColor: '#FFF',
+        paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FFF',
         borderBottomWidth: 1, borderBottomColor: '#EEE',
     },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },

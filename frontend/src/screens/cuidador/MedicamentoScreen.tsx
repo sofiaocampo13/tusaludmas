@@ -394,14 +394,14 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
             <DateTimePicker
               value={showPicker === 'inicio' ? fechaInicio : showPicker === 'fin' ? fechaFin : horaInicio}
               mode={showPicker === 'hora' ? 'time' : 'date'}
-              onChange={(e, d) => {
+              onValueChange={(_, d) => {
+                const campo = showPicker;
                 setShowPicker(null);
-                if (d) {
-                  if (showPicker === 'inicio') setFechaInicio(d);
-                  else if (showPicker === 'fin') setFechaFin(d);
-                  else setHoraInicio(d);
-                }
+                if (campo === 'inicio') setFechaInicio(d);
+                else if (campo === 'fin') setFechaFin(d);
+                else setHoraInicio(d);
               }}
+              onDismiss={() => setShowPicker(null)}
             />
           )}
         </ScrollView>

@@ -164,12 +164,13 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
           <DateTimePicker
             value={showPicker === 'fecha' ? fecha : hora}
             mode={showPicker === 'fecha' ? 'date' : 'time'}
-            onChange={(e, d) => {
+            onValueChange={(_, d) => {
+              const campo = showPicker;
               setShowPicker(null);
-              if (!d) return;
-              if (showPicker === 'fecha') setFecha(d);
+              if (campo === 'fecha') setFecha(d);
               else setHora(d);
             }}
+            onDismiss={() => setShowPicker(null)}
           />
         )}
 

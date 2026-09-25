@@ -402,9 +402,8 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
         <DateTimePicker
           value={parseDbDateTime(alarmEditando.alarm_datetime) ?? new Date()}
           mode="time"
-          onChange={async (e, newDate) => {
+          onValueChange={async (_, newDate) => {
             setShowEditPicker(false);
-            if (e.type === 'dismissed' || !newDate) return;
 
             const base = parseDbDateTime(alarmEditando.alarm_datetime) ?? new Date();
             base.setHours(newDate.getHours(), newDate.getMinutes(), 0, 0);
@@ -418,6 +417,10 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
             } catch {
               Alert.alert('Error', 'No se pudo actualizar la hora.');
             }
+            setAlarmEditando(null);
+          }}
+          onDismiss={() => {
+            setShowEditPicker(false);
             setAlarmEditando(null);
           }}
         />

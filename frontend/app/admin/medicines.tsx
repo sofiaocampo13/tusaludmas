@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'; 
 import { getAllMedicinesProvider } from '../../src/services/adminService'; 
 
 const BRAND_COLOR = '#004080';
 
 const AdminMedicines = () => {
+    const insets = useSafeAreaInsets();
     const [medicines, setMedicines] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -64,9 +66,9 @@ const AdminMedicines = () => {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
             {/* Encabezado Azul */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
                 <Ionicons name="chevron-back" size={28} color="white" />
                 <Text style={styles.headerTitle}>Catálogo de Medicamentos</Text>
                 <TouchableOpacity onPress={fetchMedicines}>
@@ -97,10 +99,10 @@ const AdminMedicines = () => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F2F5F8' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    // paddingTop se calcula en linea: la cabecera absorbe el inset superior.
     header: { 
         backgroundColor: BRAND_COLOR, 
-        height: 100, 
-        paddingTop: 40, 
+        paddingBottom: 14, 
         flexDirection: 'row', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
