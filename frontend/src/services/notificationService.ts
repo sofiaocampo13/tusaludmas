@@ -20,11 +20,14 @@ export function alarmIdFromNotificationData(data: Record<string, unknown> | unde
 
 async function ensureAndroidChannel(): Promise<void> {
   if (Platform.OS === 'android') {
+    // Sin la propiedad `sound` se usa el sonido de notificación del sistema.
+    // No poner 'default': ese campo espera el nombre de un archivo incluido en
+    // la app, y la palabra 'default' hace que el módulo nativo lo reporte como
+    // sonido faltante en cada arranque.
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
       name: 'Medicamentos',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      sound: 'default',
     });
   }
 }
