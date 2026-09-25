@@ -227,7 +227,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
 
           <Text style={styles.label}>Nombre Medicamento</Text>
           <View style={styles.autocompleteContainer}>
-            <TextInput style={styles.input} value={nombreBusqueda} onChangeText={handleBusqueda} placeholder="Ej: Acetaminofen" />
+            <TextInput placeholderTextColor="#9CA3AF" style={styles.input} value={nombreBusqueda} onChangeText={handleBusqueda} placeholder="Ej: Acetaminofen" />
             {loadingSearch && <ActivityIndicator style={styles.loaderSearch} color="#004080" />}
             {showSuggestions && (
               <View style={styles.suggestions}>
@@ -243,21 +243,34 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
 
           <Text style={styles.label}>Dosis</Text>
           <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1.5 }]} keyboardType="numeric" value={dosisValor} onChangeText={setDosisValor} placeholder="Cant." />
+            <TextInput placeholderTextColor="#9CA3AF" style={[styles.input, { flex: 1.5 }]} keyboardType="numeric" value={dosisValor} onChangeText={setDosisValor} placeholder="Cant." />
             <View style={styles.pickerBox}>
-              <Picker selectedValue={dosisUnidad} onValueChange={(v) => setDosisUnidad(v)}>
-                <Picker.Item label="mg" value="mg" /><Picker.Item label="ml" value="ml" />
-                <Picker.Item label="Tabletas" value="tabletas" /><Picker.Item label="Gotas" value="gotas" />
+              <Picker
+                selectedValue={dosisUnidad}
+                onValueChange={(v) => setDosisUnidad(v)}
+                style={styles.picker}
+                dropdownIconColor="#004080"
+              >
+                <Picker.Item label="mg" value="mg" />
+                <Picker.Item label="ml" value="ml" />
+                <Picker.Item label="Tabletas" value="tabletas" />
+                <Picker.Item label="Gotas" value="gotas" />
               </Picker>
             </View>
           </View>
 
           <Text style={styles.label}>Frecuencia (Cada cuánto)</Text>
           <View style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1 }]} keyboardType="numeric" value={frecuenciaValor} onChangeText={setFrecuenciaValor} placeholder="Ej: 8" />
+            <TextInput placeholderTextColor="#9CA3AF" style={[styles.input, { flex: 1 }]} keyboardType="numeric" value={frecuenciaValor} onChangeText={setFrecuenciaValor} placeholder="Ej: 8" />
             <View style={styles.pickerBox}>
-              <Picker selectedValue={frecuenciaTipo} onValueChange={(v) => setFrecuenciaTipo(v)}>
-                <Picker.Item label="Horas" value="Horas" /><Picker.Item label="Días" value="Días" />
+              <Picker
+                selectedValue={frecuenciaTipo}
+                onValueChange={(v) => setFrecuenciaTipo(v)}
+                style={styles.picker}
+                dropdownIconColor="#004080"
+              >
+                <Picker.Item label="Horas" value="Horas" />
+                <Picker.Item label="Días" value="Días" />
               </Picker>
             </View>
           </View>
@@ -406,10 +419,14 @@ const styles = StyleSheet.create({
   patientLabel: { color: '#004080', fontWeight: 'bold', marginBottom: 15, fontSize: 16 },
   label: { fontWeight: 'bold', marginTop: 20, marginBottom: 8, color: '#333', fontSize: 16 },
   autocompleteContainer: { zIndex: 1000 },
-  input: { backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#E9ECEF' },
+  input: { backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#E9ECEF', color: '#1a1a1a' },
   row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   rowAlignCenter: { flexDirection: 'row', alignItems: 'center' },
   pickerBox: { flex: 1.2, backgroundColor: '#F8F9FA', borderRadius: 12, borderWidth: 1, borderColor: '#E9ECEF', overflow: 'hidden' },
+  // `style.color` del Picker mapea al texto CERRADO unicamente (mPrimaryTextColor
+  // en el nativo, que solo se aplica cuando no es el desplegable). El desplegable
+  // se deja con el color del sistema: su fondo tambien lo pone el sistema.
+  picker: { color: '#1a1a1a' },
   dateBtn: { flex: 1, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E9ECEF' },
   calcBtn: { backgroundColor: '#004080', padding: 18, borderRadius: 12, marginTop: 25, alignItems: 'center' },
   calcBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },

@@ -96,7 +96,7 @@ export default function EditUserScreen() {
           
           <View style={styles.formSection}>
             <Text style={styles.label}>Nombres</Text>
-            <TextInput 
+            <TextInput placeholderTextColor="#9CA3AF" 
               style={styles.input}
               value={formData.first_name}
               onChangeText={(text) => setFormData({...formData, first_name: text})}
@@ -104,7 +104,7 @@ export default function EditUserScreen() {
             />
 
             <Text style={styles.label}>Apellidos</Text>
-            <TextInput 
+            <TextInput placeholderTextColor="#9CA3AF" 
               style={styles.input}
               value={formData.last_name}
               onChangeText={(text) => setFormData({...formData, last_name: text})}
@@ -112,7 +112,7 @@ export default function EditUserScreen() {
             />
 
             <Text style={styles.label}>Correo Electrónico</Text>
-            <TextInput 
+            <TextInput placeholderTextColor="#9CA3AF" 
               style={styles.input}
               value={formData.email}
               onChangeText={(text) => setFormData({...formData, email: text})}
@@ -122,7 +122,7 @@ export default function EditUserScreen() {
             />
 
             <Text style={styles.label}>Teléfono</Text>
-            <TextInput 
+            <TextInput placeholderTextColor="#9CA3AF" 
               style={styles.input}
               value={formData.phone || ''}
               onChangeText={(text) => setFormData({...formData, phone: text})}

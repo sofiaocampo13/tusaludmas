@@ -170,26 +170,26 @@ export default function RegisterPage() {
             </View>
 
             <Text style={styles.label}>Nombre</Text>
-            <TextInput style={styles.input} placeholder="Tu nombre" value={firstName} onChangeText={setFirstName} />
+            <TextInput placeholderTextColor="#9CA3AF" style={styles.input} placeholder="Tu nombre" value={firstName} onChangeText={setFirstName} />
 
             <Text style={styles.label}>Apellido</Text>
-            <TextInput style={styles.input} placeholder="Tu apellido" value={lastName} onChangeText={setLastName} />
+            <TextInput placeholderTextColor="#9CA3AF" style={styles.input} placeholder="Tu apellido" value={lastName} onChangeText={setLastName} />
 
             <Text style={styles.label}>Nombre de usuario</Text>
-            <TextInput
+            <TextInput placeholderTextColor="#9CA3AF"
               style={styles.input} placeholder="Ej: juan123" autoCapitalize="none"
               value={username} onChangeText={setUsername}
             />
 
             <Text style={styles.label}>Correo electrónico</Text>
-            <TextInput
+            <TextInput placeholderTextColor="#9CA3AF"
               style={styles.input} placeholder="ejemplo@correo.com" keyboardType="email-address"
               autoCapitalize="none" value={email} onChangeText={setEmail}
             />
 
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.passwordContainer}>
-              <TextInput
+              <TextInput placeholderTextColor="#9CA3AF"
                 style={styles.passwordInput}
                 placeholder="Mínimo 8 caracteres"
                 secureTextEntry={!showPassword}
@@ -218,7 +218,7 @@ export default function RegisterPage() {
             )}
 
             <Text style={styles.label}>Teléfono</Text>
-            <TextInput
+            <TextInput placeholderTextColor="#9CA3AF"
               style={styles.input} placeholder="Ej: 3001234567" keyboardType="phone-pad"
               value={phone} onChangeText={setPhone}
             />
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#7F8C8D', marginBottom: 25 },
   form: { width: '100%' },
   label: { fontSize: 13, fontWeight: 'bold', color: '#34495E', marginBottom: 5 },
-  input: { backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#E5E7EB' },
+  input: { backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#E5E7EB', color: '#1a1a1a' },
   roleSelectorContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   roleOption: { flex: 0.48, padding: 12, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, alignItems: 'center' },
   roleOptionActive: { backgroundColor: '#004080', borderColor: '#004080' },
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   dateText: { fontSize: 14, color: '#1a1a1a' },
   datePlaceholder: { fontSize: 14, color: '#9CA3AF' },
   passwordContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#E5E7EB' },
-  passwordInput: { flex: 1, padding: 14 },
+  passwordInput: { flex: 1, padding: 14, color: '#1a1a1a' },
   eyeBtn: { paddingHorizontal: 14 },
   rulesContainer: { marginBottom: 15, gap: 4 },
   ruleRow: { flexDirection: 'row', alignItems: 'center' },

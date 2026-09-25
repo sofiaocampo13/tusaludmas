@@ -117,7 +117,7 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
         <Text style={styles.patientLabel}>Paciente: {patientName}</Text>
 
         <Text style={styles.label}>Descripción de la cita</Text>
-        <TextInput
+        <TextInput placeholderTextColor="#9CA3AF"
           style={styles.input}
           placeholder="Ej: Consulta de control"
           value={cita}
@@ -129,6 +129,8 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
           <Picker
             selectedValue={selectedClinicId}
             onValueChange={(v) => setSelectedClinicId(v)}
+            style={styles.picker}
+            dropdownIconColor="#004080"
           >
             {clinics.length === 0 && (
               <Picker.Item label="Cargando clínicas..." value={null} />
@@ -207,6 +209,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 15, fontWeight: '600', marginBottom: 8, marginTop: 16, color: '#333' },
   input: { backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, fontSize: 16, color: '#000', borderWidth: 1, borderColor: '#E9ECEF' },
   pickerBox: { backgroundColor: '#F8F9FA', borderRadius: 12, borderWidth: 1, borderColor: '#E9ECEF', overflow: 'hidden' },
+  // `style.color` del Picker mapea al texto CERRADO unicamente (mPrimaryTextColor
+  // en el nativo, que solo se aplica cuando no es el desplegable). El desplegable
+  // se deja con el color del sistema: su fondo tambien lo pone el sistema.
+  picker: { color: '#1a1a1a' },
   clinicAddress: { color: '#888', fontSize: 12, marginTop: 4, marginLeft: 4 },
   dateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#E9ECEF', gap: 10 },
   dateBtnText: { fontSize: 16, color: '#333' },
