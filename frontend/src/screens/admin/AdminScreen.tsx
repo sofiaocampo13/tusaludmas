@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   StatusBar
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getAdminSummaryProvider } from '../../services/adminService';
 
 export default function AdminScreen({ user }: any) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<'Mensual' | 'Semanal' | 'Hoy'>('Semanal');
   const [loading, setLoading] = useState(false);
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
@@ -68,11 +69,11 @@ export default function AdminScreen({ user }: any) {
       <StatusBar barStyle="light-content" />
       
       {/* 🟦 FRANJA AZUL SUPERIOR (Identidad Mockup) */}
-      <View style={styles.blueBar}>
+      <View style={[styles.blueBar, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.blueBarText}>TuSalud+</Text>
       </View>
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
         {/* HEADER CON FOTO Y AJUSTES */}
         <View style={styles.header}>
           <View>
@@ -165,13 +166,14 @@ export default function AdminScreen({ user }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   // 🟦 ESTILO DE LA FRANJA AZUL
+  // paddingTop se calcula en linea: la franja absorbe el inset superior, si no
+  // el titulo queda pegado al reloj del sistema.
   blueBar: { 
     backgroundColor: '#004080', 
-    height: 60, 
     width: '100%', 
     justifyContent: 'center', 
     paddingHorizontal: 20,
-    paddingTop: 10
+    paddingBottom: 16
   },
   blueBarText: { color: '#FFF', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.5 },
   

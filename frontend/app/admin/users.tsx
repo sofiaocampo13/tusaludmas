@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  ActivityIndicator,
-  Alert,
-  StatusBar
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getAllUsersProvider, toggleUserStatusProvider, UserData } from '../../src/services/adminService';
 
 export default function UsersScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -134,9 +126,9 @@ export default function UsersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color="#333" />
         </TouchableOpacity>
@@ -191,7 +183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingBottom: 15,
     backgroundColor: '#FFF',
     elevation: 4,
     shadowColor: '#000',

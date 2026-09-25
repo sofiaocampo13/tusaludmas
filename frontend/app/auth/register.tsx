@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView,
-  Alert, ActivityIndicator, Modal, SafeAreaView as RNSafeAreaView
+  Alert, ActivityIndicator, Modal
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -236,10 +236,11 @@ export default function RegisterPage() {
                 mode="date"
                 minimumDate={new Date(1900, 0, 1)}
                 maximumDate={getMaxBirthDateForAdult()}
-                onChange={(_, date) => {
+                onValueChange={(_, date) => {
                   setShowPicker(false);
-                  if (date) setBirthDate(date);
+                  setBirthDate(date);
                 }}
+                onDismiss={() => setShowPicker(false)}
               />
             )}
 

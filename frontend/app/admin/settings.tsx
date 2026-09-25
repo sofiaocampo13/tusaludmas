@@ -1,19 +1,12 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  ScrollView, 
-  Alert,
-  StatusBar 
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert("Cerrar Sesión", "¿Estás seguro de que quieres salir?", [
@@ -33,7 +26,7 @@ export default function SettingsScreen() {
       <StatusBar barStyle="light-content" />
       
       {/* FRANJA AZUL SUPERIOR (Consistencia) */}
-      <View style={styles.blueBar}>
+      <View style={[styles.blueBar, { paddingTop: insets.top + 14 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={28} color="#FFF" />
         </TouchableOpacity>
@@ -41,7 +34,7 @@ export default function SettingsScreen() {
         <View style={{ width: 28 }} />
       </View>
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           
           <Text style={styles.sectionTitle}>Cuenta</Text>
@@ -86,14 +79,15 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
+  // paddingTop se calcula en linea: la franja se extiende por detras de la
+  // barra de estado y absorbe el inset, en vez de dejar una franja de otro color.
   blueBar: { 
     backgroundColor: '#004080', 
-    height: 100, 
     flexDirection: 'row',
     alignItems: 'center', 
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 40
+    paddingBottom: 14
   },
   blueBarText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   backButton: { padding: 5 },
