@@ -12,7 +12,8 @@ const app = express();
 
 // Middlewares
 app.use(cors()); 
-app.use(express.json()); 
+// Límite mayor al de por defecto (100 kb): los reportes pueden incluir una captura en base64
+app.use(express.json({ limit: '8mb' })); 
 
 // Rutas
 app.use('/api', authRoutes);

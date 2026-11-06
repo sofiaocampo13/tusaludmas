@@ -1,9 +1,13 @@
 import * as Notifications from 'expo-notifications';
-import { Alert, Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Alarm } from './patientService';
-import { dbTime } from '../utils/datetime';
+import { dbTime, formatHora } from '../utils/datetime';
 
-const ANDROID_CHANNEL_ID = 'medicamentos';
+// Canal de prioridad máxima: en Android la importancia de un canal ya creado no
+// se puede subir, por eso el id es nuevo y no el anterior ('medicamentos').
+const ANDROID_CHANNEL_ID = 'medicamentos-alta';
+const BATTERY_TIP_KEY = 'tusalud_aviso_bateria_v1';
 
 export const SYNC_MED_KEY = 'tusalud_med_v1';
 
@@ -26,8 +30,9 @@ async function ensureAndroidChannel(): Promise<void> {
     // sonido faltante en cada arranque.
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
       name: 'Medicamentos',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
 }
@@ -59,6 +64,7 @@ function buildMedicationContent(
     body,
     data,
     categoryIdentifier: 'MEDICAMENTO',
+    priority: Notifications.AndroidNotificationPriority.MAX,
   };
 }
 
@@ -118,4 +124,54 @@ export async function syncServerMedicationAlarms(alarms: Alarm[]): Promise<void>
       },
     });
   }
+}
+
+
+/**
+ * Algunos celulares cierran las apps en segundo plano para ahorrar batería y la
+ * notificación de la alarma no llega. Se avisa una sola vez al paciente para que
+ * quite la restricción de batería de TUSALUD+.
+ */
+export async function recommendDisableBatterySaver(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    if (await AsyncStorage.getItem(BATTERY_TIP_KEY)) return;
+    await AsyncStorage.setItem(BATTERY_TIP_KEY, '1');
+  } catch {
+    return;
+  }
+  Alert.alert(
+    'Para que las alarmas lleguen siempre',
+    'Algunos celulares cierran la app para ahorrar batería y la alarma de tu medicamento puede no sonar. ' +
+      'Te recomendamos quitar la restricción de batería de TUSALUD+ en los ajustes del celular.',
+    [
+      { text: 'Ahora no', style: 'cancel' },
+      { text: 'Abrir ajustes', onPress: () => { void Linking.openSettings(); } },
+    ]
+  );
+}
+
+/** Aviso local al cuidador cuando el paciente marca NO LO TOMÉ. */
+export async function notifyCaregiverMissedDose(
+  patientName: string,
+  alarmTitle: string,
+  alarmDatetime: string
+): Promise<void> {
+  const ok = await ensureNotificationSetup();
+  if (!ok) return;
+
+  const medicamento = alarmTitle.replace(/^Toma:\s*/i, '');
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Toma no realizada',
+      body: `${patientName} marcó NO LO TOMÉ: ${medicamento} (${formatHora(alarmDatetime)}).`,
+      data: { tipo: 'toma_no_tomada' },
+      priority: Notifications.AndroidNotificationPriority.MAX,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 1,
+      channelId: Platform.OS === 'android' ? ANDROID_CHANNEL_ID : undefined,
+    },
+  });
 }

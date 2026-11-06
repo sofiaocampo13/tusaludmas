@@ -57,7 +57,35 @@ export const forgotPasswordProvider = async (email: string): Promise<{success: b
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),
         });
-        const data = await response.json();
+        // Si el servidor no tiene la ruta, responde HTML y no JSON: se distingue de un fallo de red
+        const data = await response.json().catch(() => null);
+        if (!data) {
+            return {
+                success: false,
+                message: response.status === 404
+                    ? "La recuperación de contraseña todavía no está disponible. Contacta al equipo de soporte."
+                    : "El servidor respondió con un error inesperado. Intenta de nuevo más tarde.",
+            };
+        }
+        return { success: response.ok, message: data.message };
+    } catch (error) {
+        return { success: false, message: "Error de conexión con el servidor" };
+    }
+};
+
+export const resetPasswordProvider = async (
+    email: string,
+    code: string,
+    newPassword: string
+): Promise<{success: boolean, message?: string}> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code, newPassword }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!data) return { success: false, message: "El servidor respondió con un error inesperado. Intenta de nuevo más tarde." };
         return { success: response.ok, message: data.message };
     } catch (error) {
         return { success: false, message: "Error de conexión con el servidor" };

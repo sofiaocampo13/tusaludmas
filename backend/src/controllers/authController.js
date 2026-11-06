@@ -37,7 +37,7 @@ export const loginByCode = (req, res) => {
         return res.status(400).json({ success: false, message: 'Ingrese el código' });
     }
 
-    User.findByCode(code, (err, results) => {
+    User.findByCode(String(code).replace(/\s+/g, ''), (err, results) => {
         if (err) return res.status(500).json({ success: false });
         if (results.length > 0) {
             res.json({ success: true, user: results[0] });

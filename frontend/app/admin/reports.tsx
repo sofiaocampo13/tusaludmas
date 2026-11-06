@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -102,6 +102,10 @@ export default function ReportsScreen() {
 
                 <Text style={styles.cardDesc}>{item.descripcion}</Text>
 
+                {item.imagen ? (
+                    <Image source={{ uri: item.imagen }} style={styles.captura} resizeMode="contain" />
+                ) : null}
+
                 <View style={styles.cardFooter}>
                     <View style={styles.categoriaPill}>
                         <Text style={styles.categoriaPillText}>
@@ -200,6 +204,7 @@ const styles = StyleSheet.create({
     },
     estadoText: { fontSize: 11, fontWeight: 'bold' },
     cardDesc: { fontSize: 13, color: '#444', lineHeight: 19, marginBottom: 12 },
+    captura: { width: '100%', height: 180, borderRadius: 10, backgroundColor: '#F2F2F2', marginBottom: 12 },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     categoriaPill: {
         backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
