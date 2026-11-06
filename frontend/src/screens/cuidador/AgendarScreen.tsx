@@ -7,7 +7,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import type { PatientLinked } from '../../types/database';
 import { createPatientAppointment, getCaregiverPatients, getClinics, listPatientAppointments } from '../../services/dataService';
-import { formatFechaHora } from '../../utils/datetime';
+import { formatFechaHora, formatHoraDate } from '../../utils/datetime';
 
 type Clinic = { id: number; name: string; address: string };
 type Props = { caregiverId?: number };
@@ -156,7 +156,7 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
         <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker('hora')}>
           <Ionicons name="time-outline" size={20} color="#004080" />
           <Text style={styles.dateBtnText}>
-            {hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatHoraDate(hora)}
           </Text>
         </TouchableOpacity>
 
@@ -164,6 +164,7 @@ const AgendarScreen: React.FC<Props> = ({ caregiverId }) => {
           <DateTimePicker
             value={showPicker === 'fecha' ? fecha : hora}
             mode={showPicker === 'fecha' ? 'date' : 'time'}
+            is24Hour={false}
             onValueChange={(_, d) => {
               const campo = showPicker;
               setShowPicker(null);

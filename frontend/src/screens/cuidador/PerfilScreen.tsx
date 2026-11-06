@@ -89,6 +89,7 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
   const [reporteTitulo, setReporteTitulo] = useState('');
   const [reporteDescripcion, setReporteDescripcion] = useState('');
   const [reporteCategoria, setReporteCategoria] = useState('general');
+  const [reporteImagen, setReporteImagen] = useState<string | null>(null);
   const [enviandoReporte, setEnviandoReporte] = useState(false);
 
   // Modales legales
@@ -189,12 +190,14 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
 
   // ── Vincular paciente ─────────────────────────────────────────────────────
   const handleLinkPatient = async () => {
-    if (!caregiverId || !linkCode.trim()) {
+    // Se quitan todos los espacios: al copiar o dictar el código suelen sobrar al inicio o al final
+    const codigo = linkCode.replace(/\s+/g, '');
+    if (!caregiverId || !codigo) {
       return Alert.alert('Código requerido', 'Ingresa el código de vinculación del paciente.');
     }
     setLinking(true);
     try {
-      await linkPatientToCaregiver(caregiverId, linkCode.trim());
+      await linkPatientToCaregiver(caregiverId, codigo);
       setLinkVisible(false);
       setLinkCode('');
       await loadData();
@@ -204,6 +207,31 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
     } finally {
       setLinking(false);
     }
+  };
+
+  // ── Adjuntar captura al reporte ───────────────────────────────────────────
+  const handleAdjuntarCaptura = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para adjuntar la captura.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      base64: true,
+      quality: 0.4, // la imagen viaja dentro del reporte: se comprime para que pese poco
+    });
+    const asset = !result.canceled ? result.assets[0] : null;
+    if (!asset?.base64) return;
+    setReporteImagen(`data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`);
+  };
+
+  const cerrarReporte = () => {
+    setReporteVisible(false);
+    setReporteTitulo('');
+    setReporteDescripcion('');
+    setReporteCategoria('general');
+    setReporteImagen(null);
   };
 
   // ── Enviar reporte ────────────────────────────────────────────────────────
@@ -219,11 +247,9 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
         titulo: reporteTitulo.trim(),
         descripcion: reporteDescripcion.trim(),
         categoria: reporteCategoria,
+        imagen: reporteImagen,
       });
-      setReporteVisible(false);
-      setReporteTitulo('');
-      setReporteDescripcion('');
-      setReporteCategoria('general');
+      cerrarReporte();
       Alert.alert('Reporte enviado', 'Tu reporte fue enviado correctamente. El equipo lo revisará pronto.');
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'No se pudo enviar el reporte.');
@@ -481,12 +507,27 @@ const PerfilScreen: React.FC<Props> = ({ caregiverId }) => {
             autoCapitalize="sentences"
           />
 
+          <Text style={styles.fieldLabel}>Captura de pantalla (opcional)</Text>
+          {reporteImagen ? (
+            <View style={styles.capturaBox}>
+              <Image source={{ uri: reporteImagen }} style={styles.capturaPreview} resizeMode="cover" />
+              <TouchableOpacity onPress={() => setReporteImagen(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={26} color="#E74C3C" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.capturaBtn} onPress={handleAdjuntarCaptura}>
+              <Ionicons name="image-outline" size={20} color="#004080" />
+              <Text style={styles.capturaBtnText}>Adjuntar captura</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.saveBtn} onPress={handleEnviarReporte} disabled={enviandoReporte}>
             {enviandoReporte
               ? <ActivityIndicator color="#FFF" />
               : <Text style={styles.saveBtnText}>Enviar Reporte</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={() => { setReporteVisible(false); setReporteTitulo(''); setReporteDescripcion(''); setReporteCategoria('general'); }}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={cerrarReporte}>
             <Text style={styles.cancelBtnText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -662,4 +703,8 @@ const styles = StyleSheet.create({
   categoriaPillText: { fontSize: 13, color: '#555', fontWeight: '500' },
   categoriaPillTextActive: { color: '#FFF' },
   textArea: { height: 100, paddingTop: 12 },
+  capturaBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#004080', borderStyle: 'dashed', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  capturaBtnText: { color: '#004080', fontWeight: '600', fontSize: 14 },
+  capturaBox: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  capturaPreview: { width: 72, height: 72, borderRadius: 10, backgroundColor: '#EEE' },
 });

@@ -48,10 +48,17 @@ export const dbTime = (value: string): number =>
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-/** "20:15" — reloj de 24 horas, el mismo que se ve al crear la toma. */
+/** "8:15 p. m." — reloj de 12 horas con a. m./p. m., igual en todas las pantallas. */
+export const formatHoraDate = (d: Date): string => {
+  const h = d.getHours();
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${pad(d.getMinutes())} ${h < 12 ? 'a. m.' : 'p. m.'}`;
+};
+
+/** Igual que `formatHoraDate`, a partir del texto "YYYY-MM-DD HH:mm:ss" de la base de datos. */
 export const formatHora = (value: string): string => {
   const d = parseDbDateTime(value);
-  return d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : value;
+  return d ? formatHoraDate(d) : value;
 };
 
 /** "25 sep" */

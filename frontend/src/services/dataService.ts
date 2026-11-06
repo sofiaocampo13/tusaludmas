@@ -80,6 +80,8 @@ export async function createReporte(payload: {
   titulo: string;
   descripcion: string;
   categoria?: string;
+  /** Captura de pantalla opcional, como data URI (data:image/jpeg;base64,...) */
+  imagen?: string | null;
 }) {
   return apiPost<{ success: boolean; id: number }>('/reportes', payload);
 }

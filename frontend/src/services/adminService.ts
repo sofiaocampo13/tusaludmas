@@ -29,6 +29,7 @@ export interface ReportsData {
     categoria: string;
     estado: number; // 0=pendiente, 1=revisado, 2=resuelto
     created_at: string;
+    imagen?: string | null; // captura de pantalla adjunta (data URI)
     first_name?: string | null;
     last_name?: string | null;
     username?: string;

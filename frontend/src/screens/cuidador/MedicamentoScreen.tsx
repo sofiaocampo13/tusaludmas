@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import type { Medicine, PatientLinked } from '../../types/database';
-import { formatDbDate, formatDbDateTime } from '../../utils/datetime';
+import { formatDbDate, formatDbDateTime, formatHoraDate } from '../../utils/datetime';
 import {
   getCaregiverPatients,
   createPatientMedicine,
@@ -77,8 +77,11 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
     return () => { mounted = false; };
   }, [caregiverId]);
 
+  // Acepta coma o punto como separador decimal (0,5 o 0.5).
+  const normalizarDosis = (valor: string) => valor.trim().replace(',', '.');
+
   const validarDosis = (valor: string, unidad: string): boolean => {
-    const num = parseFloat(valor);
+    const num = parseFloat(normalizarDosis(valor));
     if (isNaN(num) || num <= 0) return false;
     const limites: Record<string, number> = {
       'mg': 2000, 'ml': 50, 'tabletas': 5, 'gotas': 60
@@ -174,7 +177,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
     try {
       const resPM = await createPatientMedicine(patient.id, {
         medicine_id: selectedMed.id,
-        dose: `${dosisValor} ${dosisUnidad}`,
+        dose: `${normalizarDosis(dosisValor)} ${dosisUnidad}`,
         frequency: `Cada ${frecuenciaValor} ${frecuenciaTipo}`,
         start_date: formatDbDate(fechaInicio),
         end_date: formatDbDate(fechaFin)
@@ -243,7 +246,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
 
           <Text style={styles.label}>Dosis</Text>
           <View style={styles.row}>
-            <TextInput placeholderTextColor="#9CA3AF" style={[styles.input, { flex: 1.5 }]} keyboardType="numeric" value={dosisValor} onChangeText={setDosisValor} placeholder="Cant." />
+            <TextInput placeholderTextColor="#9CA3AF" style={[styles.input, { flex: 1.5 }]} keyboardType="decimal-pad" value={dosisValor} onChangeText={setDosisValor} placeholder="Cant." />
             <View style={styles.pickerBox}>
               <Picker
                 selectedValue={dosisUnidad}
@@ -290,7 +293,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
           <Text style={styles.label}>Horario Primera Toma</Text>
           <TouchableOpacity style={[styles.input, styles.rowAlignCenter]} onPress={() => setShowPicker('hora')}>
             <Ionicons name="time-outline" size={22} color="#004080" style={{ marginRight: 10 }} />
-            <Text style={{ fontSize: 16 }}>{horaInicio.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            <Text style={{ fontSize: 16 }}>{formatHoraDate(horaInicio)}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.calcBtn} onPress={() => calcularPizarra()}>
@@ -394,6 +397,7 @@ const MedicamentoScreen: React.FC<Props> = ({ caregiverId }) => {
             <DateTimePicker
               value={showPicker === 'inicio' ? fechaInicio : showPicker === 'fin' ? fechaFin : horaInicio}
               mode={showPicker === 'hora' ? 'time' : 'date'}
+              is24Hour={false}
               onValueChange={(_, d) => {
                 const campo = showPicker;
                 setShowPicker(null);

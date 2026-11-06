@@ -1,13 +1,18 @@
 import Reportes from '../models/reportes.js';
 
 export const createReporte = (req, res) => {
-  const { caregiver_id, titulo, descripcion, categoria } = req.body;
+  const { caregiver_id, titulo, descripcion, categoria, imagen } = req.body;
 
   if (!caregiver_id || !titulo?.trim() || !descripcion?.trim()) {
     return res.status(400).json({ success: false, message: 'caregiver_id, titulo y descripcion son requeridos' });
   }
 
-  Reportes.create(caregiver_id, titulo.trim(), descripcion.trim(), categoria, (err, result) => {
+  // La captura es opcional y debe ser una imagen en data URI (la manda la app)
+  if (imagen && !/^data:image\/(png|jpe?g|webp);base64,/i.test(imagen)) {
+    return res.status(400).json({ success: false, message: 'La captura adjunta no es una imagen válida' });
+  }
+
+  Reportes.create(caregiver_id, titulo.trim(), descripcion.trim(), categoria, imagen || null, (err, result) => {
     if (err) {
       console.error('Error DB createReporte:', err);
       return res.status(500).json({ success: false, message: 'Error de servidor' });

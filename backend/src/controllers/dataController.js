@@ -60,7 +60,7 @@ export const linkPatientToCaregiver = (req, res) => {
     return res.status(400).json({ success: false, message: 'Faltan datos' });
   }
 
-  Caregiver.linkPatient(caregiverId, link_code.trim(), (err, result) => {
+  Caregiver.linkPatient(caregiverId, String(link_code).replace(/\s+/g, ''), (err, result) => {
     if (err) {
       console.error('Error DB linkPatient:', err);
       return res.status(500).json({ success: false, message: 'Error de servidor' });

@@ -105,6 +105,7 @@ export interface Reporte {
   categoria: string; // 'general' | 'tecnico' | 'paciente' | 'otro'
   estado: number; // 0=pendiente, 1=revisado, 2=resuelto
   created_at: string;
+  imagen?: string | null; // captura de pantalla adjunta (data URI)
   // Campos del JOIN con users
   first_name?: string | null;
   last_name?: string | null;

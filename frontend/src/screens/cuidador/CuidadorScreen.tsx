@@ -8,7 +8,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../config/api';
+import { notifyCaregiverMissedDose } from '../../services/notificationService';
 import { listPatientAlarmas, omitirAlarma, editarAlarma, eliminarAlarma } from '../../services/dataService';
 import type { CuidadorUser, PatientLinked, NotificacionEmergente } from '../../types/database';
 import { dbDateOnly, formatDbDateTime, formatHora, parseDbDateTime } from '../../utils/datetime';
@@ -63,6 +65,10 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+// state de la alarma cuando el paciente respondió NO LO TOMÉ (ver PacienteScreen)
+const ESTADO_NO_TOMADA = 4;
+const MAX_AVISOS_GUARDADOS = 200;
+
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 export interface CuidadorScreenProps {
@@ -97,10 +103,37 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
   const [alarmEditando, setAlarmEditando]     = useState<NotificacionEmergente | null>(null);
   const [showEditPicker, setShowEditPicker]   = useState(false);
 
+  // Foto de perfil: se guarda desde la pantalla Perfil, así que se vuelve a leer
+  // cada vez que Inicio gana foco para que el cambio se vea sin reiniciar sesión.
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+      AsyncStorage.getItem(`profile_photo_${user.id}`)
+        .then(uri => { if (activo) setFotoUri(uri); })
+        .catch(() => { /* sin foto guardada: se muestra el avatar por defecto */ });
+      return () => { activo = false; };
+    }, [user.id])
+  );
+
   // ── Derivados ────────────────────────────────────────────────────────────
   const weekDays      = generateWeekDays(weekOffset);
   const alarmasDia    = todasLasAlarmas.filter(n => alarmToLocalDateString(n.alarm_datetime) === selectedDate);
   const isPastAlarm   = menuNotif ? (parseDbDateTime(menuNotif.alarm_datetime) ?? new Date()) < new Date() : false;
+
+  // Resumen de la semana que se está viendo en el calendario
+  const resumenSemana = (() => {
+    const fechasSemana = new Set(weekDays.map(d => d.fullDate));
+    const ahora = Date.now();
+    const deLaSemana = todasLasAlarmas.filter(n => fechasSemana.has(alarmToLocalDateString(n.alarm_datetime)));
+    return {
+      tomadas: deLaSemana.filter(n => n.state === 1).length,
+      noTomadas: deLaSemana.filter(n => n.state === ESTADO_NO_TOMADA).length,
+      sinConfirmar: deLaSemana.filter(
+        n => n.state === 0 && (parseDbDateTime(n.alarm_datetime)?.getTime() ?? Infinity) < ahora
+      ).length,
+    };
+  })();
 
   const firstDayOfWeek = (() => {
     const d = new Date();
@@ -126,37 +159,68 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
   };
 
   // ── Fetch alarmas (sin filtro de fecha, filtramos en UI) ─────────────────
-  const fetchAlarmasReales = async () => {
+  // Avisa al cuidador (notificación local) de cada toma que el paciente marcó
+  // como NO LO TOMÉ. Se recuerdan los ids ya avisados para no repetir el aviso.
+  const avisarTomasNoTomadas = async (pId: number, alarmas: NotificacionEmergente[]) => {
+    const key = `tusalud_no_tomadas_avisadas_${pId}`;
+    let avisadas: number[] = [];
+    try {
+      avisadas = JSON.parse((await AsyncStorage.getItem(key)) ?? '[]');
+    } catch { avisadas = []; }
+
+    const haceUnDia = Date.now() - 24 * 60 * 60 * 1000;
+    const nuevas = alarmas.filter(a =>
+      a.state === ESTADO_NO_TOMADA &&
+      !avisadas.includes(a.id) &&
+      (parseDbDateTime(a.alarm_datetime)?.getTime() ?? 0) >= haceUnDia
+    );
+    if (nuevas.length === 0) return;
+
+    const nombrePaciente = pacienteInfo?.first_name || (patient ? getDisplayName(patient) : 'El paciente');
+    for (const a of nuevas) {
+      await notifyCaregiverMissedDose(nombrePaciente, a.title, a.alarm_datetime);
+    }
+    const guardar = [...avisadas, ...nuevas.map(a => a.id)].slice(-MAX_AVISOS_GUARDADOS);
+    try { await AsyncStorage.setItem(key, JSON.stringify(guardar)); } catch { /* sin almacenamiento: se reintenta luego */ }
+  };
+
+  const fetchAlarmasReales = async (silencioso = false) => {
     const pId = patient?.id || pacienteInfo?.id;
     if (!pId) { setLoadingAlarmas(false); return; }
     try {
-      setLoadingAlarmas(true);
+      if (!silencioso) setLoadingAlarmas(true);
       const res = await listPatientAlarmas(pId);
       if (res.success && Array.isArray(res.alarmas)) {
-        setTodasLasAlarmas(
-          res.alarmas
-            .filter((a: any) => a.alarm_datetime && a.state !== 2)
-            .map((a: any) => ({
-              id: a.id,
-              type: 'toma' as const,
-              title: a.title,
-              detail: 'Medicamento programado',
-              alarm_datetime: a.alarm_datetime,
-              patient_medicine_id: a.patient_medicine_id,
-              state: a.state ?? 0,
-            }))
-        );
+        const alarmas: NotificacionEmergente[] = res.alarmas
+          .filter((a: any) => a.alarm_datetime && a.state !== 2)
+          .map((a: any) => ({
+            id: a.id,
+            type: 'toma' as const,
+            title: a.title,
+            detail: 'Medicamento programado',
+            alarm_datetime: a.alarm_datetime,
+            patient_medicine_id: a.patient_medicine_id,
+            state: a.state ?? 0,
+          }));
+        setTodasLasAlarmas(alarmas);
+        void avisarTomasNoTomadas(pId, alarmas);
       }
     } catch (e) {
       console.error('Error al cargar alarmas:', e);
     } finally {
-      setLoadingAlarmas(false);
+      if (!silencioso) setLoadingAlarmas(false);
     }
   };
 
   useEffect(() => {
     fetchLocation();
     const interval = setInterval(fetchLocation, 15000);
+    return () => clearInterval(interval);
+  }, [patient?.id, pacienteInfo?.id]);
+
+  // Revisa las alarmas cada 30 s para enterarse de los NO LO TOMÉ del paciente
+  useEffect(() => {
+    const interval = setInterval(() => fetchAlarmasReales(true), 30000);
     return () => clearInterval(interval);
   }, [patient?.id, pacienteInfo?.id]);
 
@@ -205,8 +269,15 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
   };
 
   const handleCall = () => {
-    const phone = pacienteInfo?.phone || (patient as any)?.phone;
-    if (phone) Linking.openURL(`tel:${phone}`);
+    const phone = String(pacienteInfo?.phone || (patient as any)?.phone || '').trim();
+    if (!phone) {
+      Alert.alert(
+        'Sin teléfono registrado',
+        `${currentPatientName} no tiene un número de teléfono registrado. Pídele que lo agregue en su perfil.`
+      );
+      return;
+    }
+    Linking.openURL(`tel:${phone}`);
   };
 
   const currentPatientName =
@@ -224,8 +295,8 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
 
         {/* Bienvenida */}
         <View style={styles.welcomeSection}>
-          {user.profile_picture ? (
-            <Image source={{ uri: user.profile_picture }} style={styles.avatar} />
+          {fotoUri || user.profile_picture ? (
+            <Image source={{ uri: (fotoUri || user.profile_picture) as string }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Ionicons name="person" size={30} color="#666" />
@@ -276,6 +347,22 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
             })}
           </View>
 
+          <View style={styles.resumenRow}>
+            <View style={styles.resumenItem}>
+              <Text style={[styles.resumenNum, { color: '#2E7D32' }]}>{resumenSemana.tomadas}</Text>
+              <Text style={styles.resumenLabel}>Tomadas</Text>
+            </View>
+            <View style={styles.resumenItem}>
+              <Text style={[styles.resumenNum, { color: '#C62828' }]}>{resumenSemana.noTomadas}</Text>
+              <Text style={styles.resumenLabel}>No tomadas</Text>
+            </View>
+            <View style={styles.resumenItem}>
+              <Text style={[styles.resumenNum, { color: '#E65100' }]}>{resumenSemana.sinConfirmar}</Text>
+              <Text style={styles.resumenLabel}>Sin confirmar</Text>
+            </View>
+          </View>
+          <Text style={styles.resumenTitulo}>Resumen de la semana</Text>
+
           <Text style={styles.subSubtitle}>
             {alarmasDia.length} toma(s) {esFechaHoy ? 'hoy' : `el ${selectedDate}`}
           </Text>
@@ -285,10 +372,10 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
           ) : alarmasDia.length > 0 ? (
             alarmasDia.map((notif) => (
               <View key={notif.id} style={styles.timelineItem}>
-                <View style={[styles.pillIcon, { backgroundColor: notif.state === 1 ? '#4CAF50' : '#004080' }]}>
+                <View style={[styles.pillIcon, { backgroundColor: notif.state === 1 ? '#4CAF50' : notif.state === ESTADO_NO_TOMADA ? '#E53935' : '#004080' }]}>
                   <FontAwesome5 name="pills" size={14} color="#FFF" />
                 </View>
-                <View style={[styles.activityInfo, notif.state === 1 && styles.activityInfoTomada]}>
+                <View style={[styles.activityInfo, notif.state === 1 && styles.activityInfoTomada, notif.state === ESTADO_NO_TOMADA && styles.activityInfoNoTomada]}>
                   <View style={styles.activityRow}>
                     <Text style={styles.activityTitle} numberOfLines={2}>{notif.title}</Text>
                     <TouchableOpacity onPress={() => setMenuNotif(notif)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -296,7 +383,7 @@ export default function CuidadorScreen({ user, patient = null }: CuidadorScreenP
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.activityDetail}>
-                    {notif.state === 1 ? 'Tomada' : 'Medicamento programado'}
+                    {notif.state === 1 ? 'Tomada' : notif.state === ESTADO_NO_TOMADA ? 'No tomada' : 'Medicamento programado'}
                   </Text>
                   <Text style={styles.activityTime}>
                     <Ionicons name="time-outline" size={14} /> {formatAlarmTime(notif.alarm_datetime)}
@@ -463,6 +550,14 @@ const styles = StyleSheet.create({
   pillIcon: { width: 28, height: 28, borderRadius: 14, marginRight: 12, justifyContent: 'center', alignItems: 'center' },
   activityInfo: { flex: 1, backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#EEE' },
   activityInfoTomada: { backgroundColor: '#F1F8F1', borderColor: '#C8E6C9' },
+  activityInfoNoTomada: { backgroundColor: '#FDF1F1', borderColor: '#F5C6C6' },
+
+  // Resumen semanal
+  resumenRow: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#EEE', paddingVertical: 10, marginTop: 4 },
+  resumenItem: { alignItems: 'center', flex: 1 },
+  resumenNum: { fontSize: 22, fontWeight: 'bold' },
+  resumenLabel: { fontSize: 11, color: '#666', marginTop: 2 },
+  resumenTitulo: { fontSize: 11, color: '#999', textAlign: 'center', marginTop: 6 },
   activityRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   activityTitle: { fontWeight: 'bold', fontSize: 14, flex: 1, marginRight: 8 },
   activityDetail: { color: '#666', fontSize: 12 },

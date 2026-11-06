@@ -8,6 +8,7 @@ import { getPatientDashboard, updateAlarmState, Appointment, Alarm } from '../..
 import { omitirAlarma } from '../../services/dataService';
 import {
   alarmIdFromNotificationData,
+  recommendDisableBatterySaver,
   scheduleMedicationAlarm,
   syncServerMedicationAlarms,
 } from '../../services/notificationService';
@@ -26,6 +27,9 @@ import {
 const formatearHora = formatHora;
 const formatearDiaCorto = formatDiaCorto;
 const formatearFechaHora = formatFechaHora;
+
+// state de la alarma cuando el paciente responde NO LO TOMÉ
+const ESTADO_NO_TOMADA = 4;
 
 const nombreMed = (title: string) => title.replace(/^Toma:\s*/i, '');
 
@@ -155,6 +159,11 @@ export default function PacienteScreen({ user }: any) {
     return () => sub.remove();
   }, [cargarDatos]);
 
+  // Aviso único para quitar la restricción de batería (las alarmas llegan con la app cerrada)
+  React.useEffect(() => {
+    void recommendDisableBatterySaver();
+  }, []);
+
   React.useEffect(() => {
     cargarDatos();
     const interval = setInterval(cargarDatos, 30000);
@@ -206,7 +215,16 @@ export default function PacienteScreen({ user }: any) {
     cerrarModal();
   }, [modalMed.alarmId, modalMed.medNombre, modalMed.medDosis, cerrarModal]);
 
-  const onNoLoTome = React.useCallback(() => cerrarModal(), [cerrarModal]);
+  // Estado 4 = el paciente respondió NO LO TOMÉ (distinto de 2, que es "omitida").
+  // El cuidador lo ve en su calendario y recibe un aviso.
+  const onNoLoTome = React.useCallback(async () => {
+    if (modalMed.alarmId != null) {
+      const ok = await updateAlarmState(modalMed.alarmId, ESTADO_NO_TOMADA);
+      if (!ok) console.warn('No se pudo registrar la toma como no tomada en el servidor');
+      await cargarDatos();
+    }
+    cerrarModal();
+  }, [modalMed.alarmId, cerrarModal, cargarDatos]);
 
   const omitirAlarmaAnterior = React.useCallback((alarm: Alarm) => {
     const nombre = nombreMed(alarm.title);
@@ -232,7 +250,8 @@ export default function PacienteScreen({ user }: any) {
   const ahora = new Date();
   const todayStr = localDateStr(ahora); // "YYYY-MM-DD" en zona horaria local
 
-  const gruposMed = agruparVigentes(alarmas, todayStr);
+  // Importantes muestra hasta 5 medicamentos, de la toma más próxima a la más lejana
+  const gruposMed = agruparVigentes(alarmas, todayStr).slice(0, 5);
 
   const medPasadas = alarmas
     .filter((a) => a.patient_medicine_id != null && a.state === 0 && fechaStr(a.alarm_datetime) < todayStr)
@@ -427,7 +446,7 @@ export default function PacienteScreen({ user }: any) {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <View style={styles.pillIconContainer}>
-                <Ionicons name="medical" size={24} color="#FF69B4" />
+                <Ionicons name="medical" size={32} color="#FF69B4" />
               </View>
               <Text style={styles.modalHeaderText}>ES HORA DE TOMAR TU MEDICAMENTO</Text>
             </View>
@@ -501,14 +520,14 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 12, marginTop: 4, color: '#999' },
   btnTest: { backgroundColor: '#3498DB', padding: 8, borderRadius: 20, alignSelf: 'flex-end', marginBottom: 10 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContainer: { width: '85%', backgroundColor: 'white', borderRadius: 25, padding: 20, alignItems: 'center' },
+  modalContainer: { width: '92%', backgroundColor: 'white', borderRadius: 25, padding: 24, alignItems: 'center' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, width: '100%' },
-  pillIconContainer: { marginRight: 10 },
-  modalHeaderText: { fontSize: 14, fontWeight: 'bold', flex: 1, color: '#333' },
-  modalDetailLabel: { fontSize: 13, color: '#888', marginBottom: 6, textAlign: 'center', width: '100%' },
-  modalMedText: { fontSize: 18, borderBottomWidth: 1, borderBottomColor: '#EEE', width: '100%', textAlign: 'center', paddingBottom: 15, marginBottom: 20, color: '#444' },
-  modalBtn: { width: '100%', paddingVertical: 12, borderRadius: 25, marginBottom: 10 },
-  modalBtnText: { color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
+  pillIconContainer: { marginRight: 12 },
+  modalHeaderText: { fontSize: 18, fontWeight: 'bold', flex: 1, color: '#333' },
+  modalDetailLabel: { fontSize: 16, color: '#888', marginBottom: 6, textAlign: 'center', width: '100%' },
+  modalMedText: { fontSize: 24, borderBottomWidth: 1, borderBottomColor: '#EEE', width: '100%', textAlign: 'center', paddingBottom: 15, marginBottom: 20, color: '#444' },
+  modalBtn: { width: '100%', paddingVertical: 18, borderRadius: 30, marginBottom: 12 },
+  modalBtnText: { color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 20 },
   btnGreen: { backgroundColor: '#27AE60' },
   btnOrange: { backgroundColor: '#FF8C00' },
   btnRed: { backgroundColor: '#FF4C4C' },
